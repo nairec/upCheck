@@ -51,7 +51,9 @@ export function Sidebar({ monitorCount }: SidebarProps) {
 export function HealthBar({ stats }: { stats: DashboardStats }) {
   const { monitors, uptime_24h_percent } = stats
   const hasIssues = monitors.down > 0 || monitors.degraded > 0
-  const healthPercent = uptime_24h_percent ?? 0
+  const healthPercent =
+    uptime_24h_percent ??
+    (monitors.total > 0 ? Math.round((monitors.up / monitors.total) * 100) : 100)
   const barClass = hasIssues
     ? monitors.down > 0
       ? 'health-bar__fill--down'

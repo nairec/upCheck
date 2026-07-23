@@ -45,7 +45,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `src/index.css` | Design tokens Control Room: ámbar, crema, blanco sobre fondo `#0a0908`; textura noise sutil. |
 | `src/App.css` | Layout: sidebar, health bar, stats grid, cards con jerarquía de severidad, responsive. |
 | `src/App.tsx` | Shell Control Room: sidebar + panel, reloj UTC, skeleton loading, refresh bar. |
-| `src/components/Sidebar.tsx` | Navegación lateral + `HealthBar` (uptime 24h). |
+| `src/components/Sidebar.tsx` | Navegación lateral + `HealthBar` (uptime 24h; si no hay historial, la barra refleja el % de monitores operativos). |
 | `src/components/MonitorCard.tsx` | Card con sparkline, tiempo relativo, estados quiet/critical. |
 | `src/components/StatusBadge.tsx` | Dot + label mono (`OK`/`DOWN`/`WARN`). |
 | `src/utils/time.ts` | `formatRelativeTime()` para contexto temporal en cards. |
