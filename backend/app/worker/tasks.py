@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 def dispatch_due_checks() -> int:
   """Find enabled monitors past their interval and enqueue individual check tasks."""
   with SyncSessionLocal() as session:
-    due_monitors = monitor_service.get_due_monitors(session)
+    due_monitor_ids = [monitor.id for monitor in monitor_service.get_due_monitors(session)]
 
-  for monitor in due_monitors:
-    run_monitor_check.delay(monitor.id)
+  for monitor_id in due_monitor_ids:
+    run_monitor_check.delay(monitor_id)
 
-  logger.info("Dispatched %s monitor checks", len(due_monitors))
-  return len(due_monitors)
+  logger.info("Dispatched %s monitor checks", len(due_monitor_ids))
+  return len(due_monitor_ids)
 
 
 @celery_app.task(name="app.worker.tasks.run_monitor_check", bind=True, max_retries=2)
