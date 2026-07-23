@@ -38,7 +38,17 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 
 ## Frontend (`frontend/`)
 
-Sin cambios respecto a la fase anterior: dashboard que consume `GET /monitors` y `GET /monitors/stats` con datos reales de la base de datos.
+| Archivo | Propósito |
+|---------|-----------|
+| `public/fonts/` | Geist Sans y Geist Mono (woff2 variable). |
+| `src/fonts.css` | `@font-face` para las fuentes Geist. |
+| `src/index.css` | Design tokens Control Room: ámbar, crema, blanco sobre fondo `#0a0908`; textura noise sutil. |
+| `src/App.css` | Layout: sidebar, health bar, stats grid, cards con jerarquía de severidad, responsive. |
+| `src/App.tsx` | Shell Control Room: sidebar + panel, reloj UTC, skeleton loading, refresh bar. |
+| `src/components/Sidebar.tsx` | Navegación lateral + `HealthBar` (uptime 24h). |
+| `src/components/MonitorCard.tsx` | Card con sparkline, tiempo relativo, estados quiet/critical. |
+| `src/components/StatusBadge.tsx` | Dot + label mono (`OK`/`DOWN`/`WARN`). |
+| `src/utils/time.ts` | `formatRelativeTime()` para contexto temporal en cards. |
 
 ## Raíz
 
@@ -54,3 +64,4 @@ Sin cambios respecto a la fase anterior: dashboard que consume `GET /monitors` y
 3. **Estado cacheado en `Monitor`** — `status`, `response_time_ms` y `last_checked_at` se actualizan en cada check para lecturas rápidas del dashboard; `CheckResult` guarda el historial completo.
 4. **Uptime 24h calculado desde `check_results`** — porcentaje de checks `up` en las últimas 24 h (no mock).
 5. **Enums en un solo módulo** — `app/models/enums.py` evita duplicación entre SQLAlchemy, Pydantic y (futuro) Celery serializers.
+6. **Estilo Control Room (frontend)** — paleta ámbar/crema/blanco, Geist Sans/Mono, sidebar + health bar, severidad visual (UP atenuado, DOWN con pulso), sin estética genérica de dashboard IA.
