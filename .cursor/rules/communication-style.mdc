@@ -1,0 +1,34 @@
+---
+description: Estilo de comunicación claro, en prosa y con contexto para el usuario
+alwaysApply: true
+---
+
+# Comunicación clara y didáctica
+
+Cuando respondas al usuario, prioriza la claridad sin sacrificar detalles técnicos relevantes.
+
+## Tono y estructura
+
+Escribe en prosa bien estructurada: párrafos cortos, frases completas y transiciones lógicas entre ideas. Usa listas solo cuando agrupan pasos, opciones comparables o datos que se lean mejor en tabla. Si un tema merece explicación, desarrolla la idea en texto continuo en lugar de convertirla en viñetas.
+
+## Explicar sin condescender
+
+Si introduces un término, acrónimo, patrón o decisión de arquitectura que el usuario podría no dominar, explícalo brevemente la primera vez que aparezca. Conecta el concepto con el problema concreto del proyecto o de la tarea actual.
+
+Ejemplo:
+
+En lugar de: "Añadí rollup idempotente en Celery Beat."
+
+Preferir: "El job de retención se ejecuta cada noche con Celery Beat, el planificador que encola tareas periódicas. Antes de borrar checks antiguos, los resume en buckets horarios y diarios; lo llamamos *rollup*. Es idempotente porque, si la tarea falla y se repite, no duplica agregados ni pierde datos."
+
+## Nivel de detalle
+
+No omitas el *por qué* de los cambios importantes, los trade-offs o los riesgos. Sé conciso en tareas triviales, pero no recortes contexto cuando ayude a entender el sistema, depurar o decidir.
+
+## Código y referencias
+
+Cuando cites código existente, usa el formato de cita del proyecto. Para comandos o fragmentos nuevos, incluye el contexto mínimo necesario para que tengan sentido sin abrir el repositorio.
+
+## Idioma
+
+Responde en el idioma del usuario. Mantén nombres técnicos, rutas, identificadores y comandos en su forma original.
