@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchDashboardStats, fetchMonitors } from './api/client'
 import { MonitorCard } from './components/MonitorCard'
+import { HealthBar, Sidebar } from './components/Sidebar'
 import { StatsBar } from './components/StatsBar'
 import type { DashboardStats, Monitor } from './types'
 import './App.css'
@@ -12,6 +13,7 @@ function App() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const load = useCallback(async () => {
     try {
@@ -22,6 +24,7 @@ function App() {
       setMonitors(monitorList)
       setStats(dashboardStats)
       setError(null)
+      setRefreshKey((k) => k + 1)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
@@ -36,46 +39,88 @@ function App() {
   }, [load])
 
   return (
-    <div className="layout">
-      <header className="topbar">
-        <div className="topbar__brand">
-          <span className="topbar__logo" aria-hidden="true" />
-          <h1>upCheck</h1>
-        </div>
-        <span className="topbar__subtitle">Monitoreo de infraestructura</span>
-      </header>
+    <div className="shell">
+      <Sidebar monitorCount={monitors.length} />
 
-      <main className="content">
-        {loading && <p className="notice">Cargando estado de los monitores…</p>}
+      <div className="main">
+        <header className="main__header">
+          <div>
+            <p className="main__eyebrow">infraestructura</p>
+            <h1 className="main__title">Panel de control</h1>
+          </div>
+          <div className="main__clock" aria-label="Hora del sistema">
+            <span className="main__clock-label">UTC</span>
+            <Clock />
+          </div>
+        </header>
 
-        {error && (
-          <p className="notice notice--error">
-            No se pudo conectar con la API: {error}
-          </p>
-        )}
+        <div className="refresh-bar" key={refreshKey} aria-hidden="true" />
 
-        {!loading && !error && stats && (
-          <>
-            <StatsBar stats={stats} />
-
-            <section className="grid" aria-label="Monitores">
-              {monitors.map((monitor) => (
-                <MonitorCard key={monitor.id} monitor={monitor} />
+        <main className="main__content">
+          {loading && (
+            <div className="skeleton-grid" aria-label="Cargando monitores">
+              {Array.from({ length: 4 }, (_, i) => (
+                <div key={i} className="skeleton-card" />
               ))}
-            </section>
+            </div>
+          )}
 
-            {monitors.length === 0 && (
-              <p className="notice">No hay monitores configurados todavía.</p>
-            )}
-          </>
-        )}
-      </main>
+          {error && (
+            <p className="notice notice--error" role="alert">
+              <span className="notice__prefix">ERR</span>
+              No se pudo conectar con la API — {error}
+            </p>
+          )}
 
-      <footer className="footer">
-        Actualización automática cada {REFRESH_INTERVAL_MS / 1000}s
-      </footer>
+          {!loading && !error && stats && (
+            <>
+              <HealthBar stats={stats} />
+              <StatsBar stats={stats} />
+
+              <div className="section-header">
+                <h2 className="section-header__title">Monitores</h2>
+                <span className="section-header__count">{monitors.length} activos</span>
+              </div>
+
+              <section className="grid" aria-label="Monitores">
+                {monitors.map((monitor) => (
+                  <MonitorCard key={monitor.id} monitor={monitor} />
+                ))}
+              </section>
+
+              {monitors.length === 0 && (
+                <p className="notice">
+                  <span className="notice__prefix">INFO</span>
+                  No hay monitores configurados. Añade uno vía API o migración seed.
+                </p>
+              )}
+            </>
+          )}
+        </main>
+
+        <footer className="main__footer">
+          <span>refresh · {REFRESH_INTERVAL_MS / 1000}s</span>
+          <span className="main__footer-sep">·</span>
+          <span>upCheck control room</span>
+        </footer>
+      </div>
     </div>
   )
+}
+
+function Clock() {
+  const [time, setTime] = useState(() => formatUtc())
+
+  useEffect(() => {
+    const id = setInterval(() => setTime(formatUtc()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  return <time className="main__clock-time">{time}</time>
+}
+
+function formatUtc(): string {
+  return new Date().toISOString().slice(11, 19)
 }
 
 export default App

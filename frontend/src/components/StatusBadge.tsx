@@ -1,12 +1,17 @@
 import type { MonitorStatus } from '../types'
 
 const LABELS: Record<MonitorStatus, string> = {
-  up: 'Operativo',
-  down: 'Caído',
-  degraded: 'Degradado',
-  unknown: 'Sin datos',
+  up: 'OK',
+  down: 'DOWN',
+  degraded: 'WARN',
+  unknown: '—',
 }
 
 export function StatusBadge({ status }: { status: MonitorStatus }) {
-  return <span className={`badge badge--${status}`}>{LABELS[status]}</span>
+  return (
+    <span className={`status-badge status-badge--${status}`}>
+      <span className="status-badge__dot" aria-hidden="true" />
+      <span className="status-badge__label">{LABELS[status]}</span>
+    </span>
+  )
 }
