@@ -14,7 +14,8 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
-    check_interval_seconds: int = 60
+    redis_url: str = "redis://localhost:6379/0"
+    dispatch_interval_seconds: int = 30
 
 
 @lru_cache

@@ -1,22 +1,8 @@
 from datetime import datetime
-from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-
-class MonitorType(StrEnum):
-  HTTP = "http"
-  TCP = "tcp"
-  PING = "ping"
-  POSTGRES = "postgres"
-  REDIS = "redis"
-
-
-class MonitorStatus(StrEnum):
-  UP = "up"
-  DOWN = "down"
-  DEGRADED = "degraded"
-  UNKNOWN = "unknown"
+from app.models.enums import MonitorStatus, MonitorType
 
 
 class MonitorBase(BaseModel):

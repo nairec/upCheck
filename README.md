@@ -2,7 +2,7 @@
 
 Plataforma de monitoreo de infraestructura: revisa periódicamente el estado de servidores, servicios y bases de datos, con dashboard web, historial y alertas.
 
-**Stack:** FastAPI + PostgreSQL (backend) · React + Vite + TypeScript (frontend) · Docker Compose
+**Stack:** FastAPI + PostgreSQL + Celery + Redis (backend) · React + Vite + TypeScript (frontend) · Docker Compose
 
 ## Quick start
 
@@ -15,18 +15,25 @@ docker compose up --build
 - Frontend: http://localhost:5173
 - API + Swagger: http://localhost:8000/docs
 
-Sin Docker:
+Servicios adicionales: **Redis** (broker Celery), **celery-worker** (ejecuta checks), **celery-beat** (dispara checks cada 30 s).
+
+Sin Docker (requiere Postgres y Redis locales):
 
 ```bash
-# Terminal 1 — backend
+# Terminal 1 — migraciones + API
 cd backend
 pip install -e ".[dev]"
+alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 
-# Terminal 2 — frontend
-cd frontend
-npm install
-npm run dev
+# Terminal 2 — Celery worker
+make worker
+
+# Terminal 3 — Celery beat
+make beat
+
+# Terminal 4 — frontend
+cd frontend && npm install && npm run dev
 ```
 
 El frontend hace proxy de `/api` hacia `http://localhost:8000` en desarrollo (ver `frontend/vite.config.ts`).
@@ -63,4 +70,4 @@ make up       # Docker Compose up
 
 ## Estado del proyecto
 
-Fase actual: **scaffold** — estructura del monorepo, API con datos de ejemplo y dashboard conectado. Ver [ROADMAP.md](ROADMAP.md) para las siguientes fases.
+Fase actual: **MVP en progreso** — modelos SQL, Celery scheduler, checks HTTP/TCP y API conectada a PostgreSQL. Ver [ROADMAP.md](ROADMAP.md).

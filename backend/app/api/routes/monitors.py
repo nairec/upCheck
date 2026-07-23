@@ -1,45 +1,25 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.monitor import DashboardStats, MonitorRead, MonitorStatus, MonitorSummary
+from app.core.database import get_db
+from app.schemas.monitor import DashboardStats, MonitorCreate, MonitorRead
+from app.services import monitor_service_async as monitor_service
 
 router = APIRouter()
 
-# Placeholder data until the database layer is implemented.
-_MOCK_MONITORS: list[MonitorRead] = [
-  MonitorRead(
-    id=1,
-    name="API Gateway",
-    type="http",
-    target="https://httpbin.org/status/200",
-    interval_seconds=60,
-    enabled=True,
-    status=MonitorStatus.UP,
-    response_time_ms=142.5,
-  ),
-  MonitorRead(
-    id=2,
-    name="PostgreSQL Primary",
-    type="postgres",
-    target="postgresql://localhost:5432/upcheck",
-    interval_seconds=60,
-    enabled=True,
-    status=MonitorStatus.UNKNOWN,
-  ),
-]
-
 
 @router.get("", response_model=list[MonitorRead])
-async def list_monitors() -> list[MonitorRead]:
-  return _MOCK_MONITORS
+async def list_monitors(db: AsyncSession = Depends(get_db)) -> list[MonitorRead]:
+  return await monitor_service.list_monitors(db)
+
+
+@router.post("", response_model=MonitorRead, status_code=status.HTTP_201_CREATED)
+async def create_monitor(
+  payload: MonitorCreate, db: AsyncSession = Depends(get_db)
+) -> MonitorRead:
+  return await monitor_service.create_monitor(db, payload)
 
 
 @router.get("/stats", response_model=DashboardStats)
-async def dashboard_stats() -> DashboardStats:
-  summary = MonitorSummary(
-    total=len(_MOCK_MONITORS),
-    up=sum(1 for monitor in _MOCK_MONITORS if monitor.status == MonitorStatus.UP),
-    down=sum(1 for monitor in _MOCK_MONITORS if monitor.status == MonitorStatus.DOWN),
-    degraded=sum(1 for monitor in _MOCK_MONITORS if monitor.status == MonitorStatus.DEGRADED),
-    unknown=sum(1 for monitor in _MOCK_MONITORS if monitor.status == MonitorStatus.UNKNOWN),
-  )
-  return DashboardStats(monitors=summary, uptime_24h_percent=99.2)
+async def dashboard_stats(db: AsyncSession = Depends(get_db)) -> DashboardStats:
+  return await monitor_service.dashboard_stats(db)

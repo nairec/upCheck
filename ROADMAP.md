@@ -3,22 +3,24 @@
 ## Fase 0 — Scaffold ✅
 
 - [x] Monorepo: `backend/` (FastAPI) + `frontend/` (React + Vite + TS)
-- [x] API v1 con endpoints de monitores (datos mock) y Swagger
+- [x] API v1 con endpoints de monitores y Swagger
 - [x] Dashboard responsive: stats, cards de monitores, refresco automático
 - [x] Docker Compose (Postgres 17 + backend + frontend), Makefile, tests de humo
 
-## Fase 1 — MVP
+## Fase 1 — MVP (en progreso)
 
-- [ ] Modelos SQLAlchemy (`Monitor`, `CheckResult`) + migraciones Alembic
-- [ ] CRUD completo de monitores (crear/editar/eliminar desde la UI)
-- [ ] Scheduler de checks (APScheduler): HTTP, TCP, Ping, DNS
-- [ ] Historial de resultados por monitor
+- [x] Modelos SQLAlchemy (`Monitor`, `CheckResult`) + migraciones Alembic
+- [x] Scheduler de checks con Celery + Redis (HTTP, TCP)
+- [x] `POST /monitors` para crear monitores
+- [x] Stats de uptime 24h calculadas desde historial real
+- [ ] CRUD completo desde la UI (editar/eliminar)
+- [ ] Historial de resultados por monitor (endpoint + UI)
 - [ ] Alertas por email al cambiar UP → DOWN
 
 ## Fase 2 — Diferenciadores
 
 - [ ] Checks de bases de datos: PostgreSQL, MySQL, Redis, MongoDB
-- [ ] Métricas de latencia (p50/p95) y uptime % (24h/7d/30d/90d) con gráficos
+- [ ] Métricas de latencia (p50/p95) y uptime % (7d/30d/90d) con gráficos
 - [ ] Sistema de incidentes (agrupar fallos consecutivos)
 - [ ] Status page pública
 - [ ] Webhooks / Slack / Telegram

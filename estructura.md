@@ -4,59 +4,53 @@ Documento de referencia sobre el propósito de cada archivo, las interacciones e
 
 ## Visión general
 
-Monorepo con dos aplicaciones que se comunican por HTTP (REST):
+Monorepo con frontend SPA, API REST, workers de checks y persistencia en PostgreSQL:
 
 ```
-React SPA (frontend/) ──/api/v1/*──▶ FastAPI (backend/) ──▶ PostgreSQL
+React SPA ──/api/v1/*──▶ FastAPI ──▶ PostgreSQL
+                              ▲
+Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ──▶ PostgreSQL
 ```
 
-- En **desarrollo**, Vite hace proxy de `/api` al backend (puerto 8000), evitando problemas de CORS.
-- En **Docker Compose**, cada servicio corre en su contenedor; la base de datos incluye healthcheck para que el backend arranque solo cuando Postgres está listo.
+- **FastAPI** usa SQLAlchemy **async** (`asyncpg`) para las peticiones HTTP.
+- **Celery workers** usan SQLAlchemy **sync** (`psycopg2`) porque las tareas son síncronas.
+- **Redis** actúa como broker y backend de resultados de Celery.
+- **Celery Beat** dispara periódicamente `dispatch_due_checks`, que encola checks individuales por monitor.
 
 ## Backend (`backend/`)
 
 | Archivo | Propósito |
 |---------|-----------|
-| `pyproject.toml` | Dependencias y configuración (ruff, pytest). Instalable con `pip install -e ".[dev]"`. |
-| `app/main.py` | Factory `create_app()`: crea la app FastAPI, registra CORS, routers y el endpoint `/health`. El `lifespan` queda preparado para inicializar DB y scheduler en fases siguientes. |
-| `app/config.py` | Settings con `pydantic-settings`: lee variables de entorno / `.env`. `get_settings()` está cacheado con `lru_cache`. |
-| `app/api/router.py` | Router raíz que agrega los routers de módulos bajo `/api/v1`. |
-| `app/api/routes/monitors.py` | Endpoints de monitores: `GET /monitors` y `GET /monitors/stats`. **Actualmente devuelve datos mock** hasta implementar la capa de base de datos. |
-| `app/api/routes/system.py` | Info del sistema (`/system/info`). |
-| `app/schemas/monitor.py` | Schemas Pydantic: `MonitorType`, `MonitorStatus` (enums), `MonitorCreate`, `MonitorRead`, `DashboardStats`. Es el contrato de la API que consume el frontend. |
-| `app/core/database.py` | Engine async de SQLAlchemy 2.0 + `get_db()` como dependencia de FastAPI. Aún sin modelos que lo usen. |
-| `app/models/` | Reservado para modelos SQLAlchemy (`Monitor`, `CheckResult`, `Incident`). |
-| `tests/test_health.py` | Test de humo del endpoint `/health` usando `httpx.ASGITransport` (sin servidor real). |
-| `Dockerfile` | Imagen Python 3.12 slim con uvicorn en modo reload (desarrollo). |
+| `app/models/monitor.py` | Modelo `Monitor`: configuración del check (tipo, target, intervalo, estado cacheado). |
+| `app/models/check_result.py` | Modelo `CheckResult`: historial de cada ejecución (status, latencia, error). |
+| `app/models/enums.py` | Enums compartidos `MonitorType` y `MonitorStatus` (fuente única de verdad). |
+| `app/schemas/monitor.py` | Schemas Pydantic para la API; importan los enums de `models.enums`. |
+| `app/services/monitor_service.py` | Lógica sync para Celery: `get_due_monitors`, `execute_check`, `dashboard_stats`. |
+| `app/services/monitor_service_async.py` | Lógica async para FastAPI: list/create/stats. |
+| `app/checks/runner.py` | Dispatcher de checks por tipo; implementados HTTP y TCP. |
+| `app/checks/http.py` | Check HTTP con `httpx` (status code, latencia, errores). |
+| `app/worker/celery_app.py` | Configuración de Celery + beat schedule (`dispatch_interval_seconds`). |
+| `app/worker/tasks.py` | Tareas `dispatch_due_checks` y `run_monitor_check`. |
+| `app/core/database.py` | Engine async + `get_db()` para FastAPI. |
+| `app/core/sync_database.py` | Engine sync para workers Celery. |
+| `alembic/` | Migraciones; `001_initial_schema.py` crea tablas y seed de 2 monitores. |
+| `entrypoint.sh` | Ejecuta `alembic upgrade head` antes de arrancar uvicorn. |
 
 ## Frontend (`frontend/`)
 
-| Archivo | Propósito |
-|---------|-----------|
-| `vite.config.ts` | Configuración de Vite con proxy `/api` → backend. `VITE_API_URL` permite apuntar a otro host (usado en Docker). |
-| `src/types.ts` | Tipos TypeScript espejo de los schemas Pydantic del backend. Si cambia el contrato de la API, actualizar ambos lados. |
-| `src/api/client.ts` | Cliente HTTP mínimo sobre `fetch` con manejo de errores. Funciones: `fetchMonitors()`, `fetchDashboardStats()`. |
-| `src/App.tsx` | Página principal del dashboard: carga monitores y stats en paralelo, refresco automático cada 30 s (`setInterval`), estados de carga y error. |
-| `src/components/MonitorCard.tsx` | Card de un monitor: nombre, target, tipo, intervalo, latencia y borde de color según estado. |
-| `src/components/StatsBar.tsx` | Resumen superior: total, operativos, caídos y uptime 24h. |
-| `src/components/StatusBadge.tsx` | Badge de estado (up/down/degraded/unknown) con etiquetas en español. |
-| `src/index.css` | Design tokens (variables CSS): paleta dark, tipografías. Tema oscuro fijo. |
-| `src/App.css` | Estilos de layout, cards, stats y badges. Responsive vía grid `auto-fill` y media query móvil. |
-| `Dockerfile` | Imagen node:22-alpine ejecutando el dev server de Vite. |
+Sin cambios respecto a la fase anterior: dashboard que consume `GET /monitors` y `GET /monitors/stats` con datos reales de la base de datos.
 
 ## Raíz
 
 | Archivo | Propósito |
 |---------|-----------|
-| `docker-compose.yml` | Orquesta Postgres 17, backend y frontend con volúmenes para hot-reload en desarrollo. |
-| `Makefile` | Atajos: `make backend`, `make frontend`, `make test`, `make lint`, `make up`. |
-| `ROADMAP.md` | Fases de desarrollo del producto. |
+| `docker-compose.yml` | Postgres + Redis + backend + celery-worker + celery-beat + frontend. |
+| `Makefile` | Atajos incluyendo `worker` y `beat` para desarrollo local. |
 
 ## Decisiones de diseño
 
-1. **Monorepo con API separada de la SPA** — el backend expone REST documentado (Swagger en `/docs`) y el frontend es un cliente más; facilita añadir después una status page pública u otros consumidores.
-2. **Datos mock en la capa de rutas** — la fase de scaffold valida el contrato API↔UI de extremo a extremo sin bloquearse en la base de datos. La sustitución por SQLAlchemy no cambia el contrato (los schemas ya usan `from_attributes`).
-3. **CSS puro con design tokens en lugar de Tailwind** — menos dependencias en la fase inicial; los tokens (`--up`, `--down`, etc.) centralizan la paleta de estados que usará toda la app (cards, badges, gráficos).
-4. **Polling cada 30 s en el dashboard** — suficiente para el MVP; se sustituirá por WebSockets/SSE cuando exista el scheduler de checks real.
-5. **Enums duplicados (Pydantic ↔ TypeScript)** — duplicación consciente y pequeña; si crece, se puede generar el cliente TS desde el OpenAPI del backend.
-6. **`pip install --user` en el entorno cloud** — el entorno no tiene `python3-venv`; en local se recomienda venv normal (ver README).
+1. **Doble capa de acceso a datos (async/sync)** — FastAPI no bloquea el event loop; Celery ejecuta checks síncronos (socket, httpx) sin complejidad de async en workers.
+2. **Scheduler fan-out con Celery Beat** — Beat corre cada 30 s una tarea `dispatch_due_monitors` que consulta monitores vencidos y encola `run_monitor_check(monitor_id)` por cada uno. Esto permite añadir/eliminar monitores sin reconfigurar schedules.
+3. **Estado cacheado en `Monitor`** — `status`, `response_time_ms` y `last_checked_at` se actualizan en cada check para lecturas rápidas del dashboard; `CheckResult` guarda el historial completo.
+4. **Uptime 24h calculado desde `check_results`** — porcentaje de checks `up` en las últimas 24 h (no mock).
+5. **Enums en un solo módulo** — `app/models/enums.py` evita duplicación entre SQLAlchemy, Pydantic y (futuro) Celery serializers.
