@@ -33,3 +33,55 @@ def test_get_due_monitors_respects_interval() -> None:
 
     not_due = monitor_service.get_due_monitors(session, now=datetime.now(UTC))
     assert len(not_due) == 0
+
+
+def test_get_due_monitors_excludes_active_lease() -> None:
+  engine = create_engine("sqlite:///:memory:")
+  Base.metadata.create_all(engine)
+  Session = sessionmaker(bind=engine)
+  now = datetime.now(UTC)
+
+  with Session() as session:
+    monitor = Monitor(
+      name="In flight",
+      type=MonitorType.HTTP,
+      target="https://example.com",
+      interval_seconds=60,
+      last_checked_at=now + timedelta(seconds=30),
+      status=MonitorStatus.UNKNOWN,
+    )
+    session.add(monitor)
+    session.commit()
+
+    due = monitor_service.get_due_monitors(session, now=now)
+    assert due == []
+
+
+def test_claim_monitor_for_check_prevents_duplicate_claims() -> None:
+  engine = create_engine("sqlite:///:memory:")
+  Base.metadata.create_all(engine)
+  Session = sessionmaker(bind=engine)
+  now = datetime.now(UTC)
+
+  with Session() as session:
+    monitor = Monitor(
+      name="Claimable",
+      type=MonitorType.HTTP,
+      target="https://example.com",
+      interval_seconds=60,
+      last_checked_at=now - timedelta(seconds=120),
+      status=MonitorStatus.UNKNOWN,
+    )
+    session.add(monitor)
+    session.commit()
+    monitor_id = monitor.id
+
+  with Session() as session:
+    first_claim = monitor_service.claim_monitor_for_check(session, monitor_id, now=now)
+    assert first_claim is not None
+
+  with Session() as session:
+    second_claim = monitor_service.claim_monitor_for_check(session, monitor_id, now=now)
+    assert second_claim is None
+    due = monitor_service.get_due_monitors(session, now=now)
+    assert due == []

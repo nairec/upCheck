@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.checks.runner import run_check
@@ -41,21 +41,47 @@ def create_monitor(session: Session, payload: MonitorCreate) -> MonitorRead:
   return _to_read(monitor)
 
 
+def _is_due(monitor: Monitor, current_time: datetime) -> bool:
+  if monitor.last_checked_at is None:
+    return True
+
+  last_checked = _ensure_utc(monitor.last_checked_at)
+  if last_checked > current_time:
+    return False
+
+  next_check_at = last_checked + timedelta(seconds=monitor.interval_seconds)
+  return next_check_at <= current_time
+
+
 def get_due_monitors(session: Session, *, now: datetime | None = None) -> list[Monitor]:
   current_time = now or datetime.now(UTC)
   monitors = session.scalars(select(Monitor).where(Monitor.enabled.is_(True))).all()
+  return [monitor for monitor in monitors if _is_due(monitor, current_time)]
 
-  due: list[Monitor] = []
-  for monitor in monitors:
-    if monitor.last_checked_at is None:
-      due.append(monitor)
-      continue
 
-    next_check_at = _ensure_utc(monitor.last_checked_at) + timedelta(seconds=monitor.interval_seconds)
-    if next_check_at <= current_time:
-      due.append(monitor)
+def claim_monitor_for_check(session: Session, monitor_id: int, *, now: datetime | None = None) -> Monitor | None:
+  """Atomically reserve a due monitor so concurrent workers cannot run duplicate checks."""
+  current_time = now or datetime.now(UTC)
+  monitor = session.get(Monitor, monitor_id)
+  if monitor is None or not monitor.enabled or not _is_due(monitor, current_time):
+    return None
 
-  return due
+  lease_until = current_time + timedelta(seconds=monitor.interval_seconds)
+  last_checked = monitor.last_checked_at
+  conditions = [Monitor.id == monitor_id, Monitor.enabled.is_(True)]
+  if last_checked is None:
+    conditions.append(Monitor.last_checked_at.is_(None))
+  else:
+    conditions.append(Monitor.last_checked_at == last_checked)
+
+  result = session.execute(update(Monitor).where(*conditions).values(last_checked_at=lease_until))
+  if result.rowcount != 1:
+    session.rollback()
+    return None
+
+  session.commit()
+  session.refresh(monitor)
+  return monitor
 
 
 def execute_check(session: Session, monitor: Monitor) -> CheckResult:

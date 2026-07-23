@@ -23,11 +23,14 @@ def dispatch_due_checks() -> int:
 @celery_app.task(name="app.worker.tasks.run_monitor_check", bind=True, max_retries=2)
 def run_monitor_check(self, monitor_id: int) -> str:
   with SyncSessionLocal() as session:
-    monitor = monitor_service.get_monitor(session, monitor_id)
+    monitor = monitor_service.claim_monitor_for_check(session, monitor_id)
     if monitor is None:
-      return f"monitor {monitor_id} not found"
-    if not monitor.enabled:
-      return f"monitor {monitor_id} disabled"
+      existing = monitor_service.get_monitor(session, monitor_id)
+      if existing is None:
+        return f"monitor {monitor_id} not found"
+      if not existing.enabled:
+        return f"monitor {monitor_id} disabled"
+      return f"monitor {monitor_id} skipped (not due or already claimed)"
 
     result = monitor_service.execute_check(session, monitor)
     return f"monitor {monitor_id} -> {result.status.value}"
