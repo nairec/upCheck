@@ -33,6 +33,23 @@ async def test_create_and_list_monitor(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_monitor_persists_timeout_seconds(client: AsyncClient) -> None:
+  payload = {
+    "name": "Slow endpoint",
+    "type": "http",
+    "target": "https://example.com",
+    "interval_seconds": 60,
+    "timeout_seconds": 25,
+    "enabled": True,
+  }
+
+  response = await client.post("/api/v1/monitors", json=payload)
+  assert response.status_code == 201
+  created = response.json()
+  assert created["timeout_seconds"] == 25
+
+
+@pytest.mark.asyncio
 async def test_dashboard_stats(client: AsyncClient) -> None:
   await client.post(
     "/api/v1/monitors",

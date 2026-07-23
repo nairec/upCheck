@@ -33,6 +33,7 @@ def create_monitor(session: Session, payload: MonitorCreate) -> MonitorRead:
     type=payload.type,
     target=payload.target,
     interval_seconds=payload.interval_seconds,
+    timeout_seconds=payload.timeout_seconds,
     enabled=payload.enabled,
   )
   session.add(monitor)

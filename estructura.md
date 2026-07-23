@@ -24,7 +24,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/models/monitor.py` | Modelo `Monitor`: configuración del check (tipo, target, intervalo, estado cacheado). |
 | `app/models/check_result.py` | Modelo `CheckResult`: historial de cada ejecución (status, latencia, error). |
 | `app/models/enums.py` | Enums compartidos `MonitorType` y `MonitorStatus` (fuente única de verdad). |
-| `app/schemas/monitor.py` | Schemas Pydantic para la API; importan los enums de `models.enums`. |
+| `app/schemas/monitor.py` | Schemas Pydantic para la API; importan los enums de `models.enums`. `MonitorCreate`/`MonitorRead` incluyen `timeout_seconds` (default 10s) para que checks y leases usen el valor configurado. |
 | `app/services/monitor_service.py` | Lógica sync para Celery: `get_due_monitors`, `claim_monitor_for_check`, `execute_check`, `dashboard_stats`. |
 | `app/services/monitor_service_async.py` | Lógica async para FastAPI: list/create/stats. |
 | `app/checks/runner.py` | Dispatcher de checks por tipo; implementados HTTP y TCP. |

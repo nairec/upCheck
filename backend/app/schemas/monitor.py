@@ -10,6 +10,7 @@ class MonitorBase(BaseModel):
   type: MonitorType
   target: str = Field(min_length=1, max_length=500)
   interval_seconds: int = Field(default=60, ge=30, le=3600)
+  timeout_seconds: int = Field(default=10, ge=1, le=300)
   enabled: bool = True
 
 

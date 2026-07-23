@@ -22,6 +22,7 @@ async def create_monitor(session: AsyncSession, payload: MonitorCreate) -> Monit
     type=payload.type,
     target=payload.target,
     interval_seconds=payload.interval_seconds,
+    timeout_seconds=payload.timeout_seconds,
     enabled=payload.enabled,
   )
   session.add(monitor)
