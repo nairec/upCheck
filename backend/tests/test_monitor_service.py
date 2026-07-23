@@ -2,12 +2,13 @@ from datetime import UTC, datetime, timedelta
 from threading import Barrier, Thread
 from unittest.mock import patch
 
-from sqlalchemy import create_engine, or_, update
+import pytest
+from sqlalchemy import create_engine, or_, select, update
 from sqlalchemy.orm import sessionmaker
 
 from app.checks.base import CheckOutcome
 from app.core.database import Base
-from app.models import Monitor, MonitorStatus, MonitorType
+from app.models import CheckResult, Monitor, MonitorStatus, MonitorType
 from app.services import monitor_service
 
 
@@ -112,6 +113,89 @@ def test_monitor_becomes_due_after_lease_expires_without_double_interval() -> No
 
     due = monitor_service.get_due_monitors(session, now=now)
     assert len(due) == 1
+
+
+def test_release_monitor_lease_discards_pending_check_results() -> None:
+  engine = create_engine("sqlite:///:memory:")
+  Base.metadata.create_all(engine)
+  Session = sessionmaker(bind=engine)
+  now = datetime.now(UTC)
+
+  with Session() as session:
+    monitor = Monitor(
+      name="Orphaned result",
+      type=MonitorType.HTTP,
+      target="https://example.com",
+      interval_seconds=60,
+      last_checked_at=now - timedelta(seconds=120),
+      status=MonitorStatus.UNKNOWN,
+    )
+    session.add(monitor)
+    session.commit()
+    monitor_id = monitor.id
+
+  with Session() as session:
+    claimed = monitor_service.claim_monitor_for_check(session, monitor_id, now=now)
+    assert claimed is not None
+    session.add(
+      CheckResult(
+        monitor_id=monitor_id,
+        status=MonitorStatus.UP,
+        response_time_ms=12.0,
+        checked_at=now,
+      )
+    )
+    monitor_service.release_monitor_lease(
+      session, monitor_id, expected_lease_until=claimed.lease_until
+    )
+
+  with Session() as session:
+    assert session.scalars(select(CheckResult)).all() == []
+    monitor = session.get(Monitor, monitor_id)
+    assert monitor is not None
+    assert monitor.lease_until is None
+
+
+def test_execute_check_rolls_back_on_update_failure() -> None:
+  engine = create_engine("sqlite:///:memory:")
+  Base.metadata.create_all(engine)
+  Session = sessionmaker(bind=engine)
+  now = datetime.now(UTC)
+
+  with Session() as session:
+    monitor = Monitor(
+      name="Update failure",
+      type=MonitorType.HTTP,
+      target="https://example.com",
+      interval_seconds=60,
+      last_checked_at=now - timedelta(seconds=120),
+      status=MonitorStatus.UNKNOWN,
+    )
+    session.add(monitor)
+    session.commit()
+    monitor_id = monitor.id
+
+  with Session() as session:
+    claimed = monitor_service.claim_monitor_for_check(session, monitor_id, now=now)
+    assert claimed is not None
+    monitor = session.get(Monitor, monitor_id)
+    assert monitor is not None
+
+    with patch(
+      "app.services.monitor_service.run_check",
+      return_value=CheckOutcome(status=MonitorStatus.UP, response_time_ms=12.0),
+    ):
+      with patch.object(session, "execute", side_effect=RuntimeError("update failed")):
+        with pytest.raises(RuntimeError, match="update failed"):
+          monitor_service.execute_check(
+            session, monitor, expected_lease_until=claimed.lease_until
+          )
+
+  with Session() as session:
+    assert session.scalars(select(CheckResult)).all() == []
+    monitor = session.get(Monitor, monitor_id)
+    assert monitor is not None
+    assert monitor.lease_until is not None
 
 
 def test_release_monitor_lease_allows_immediate_retry() -> None:

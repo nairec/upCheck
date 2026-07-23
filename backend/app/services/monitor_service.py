@@ -105,6 +105,7 @@ def release_monitor_lease(
   expected_lease_until: datetime,
 ) -> bool:
   """Clear an in-flight lease only if it still belongs to the caller."""
+  session.rollback()
   result = session.execute(
     update(Monitor)
     .where(Monitor.id == monitor_id, Monitor.lease_until == expected_lease_until)
@@ -137,23 +138,27 @@ def execute_check(
   )
   session.add(result)
 
-  update_result = session.execute(
-    update(Monitor)
-    .where(Monitor.id == monitor.id, Monitor.lease_until == claimed_lease)
-    .values(
-      status=outcome.status,
-      response_time_ms=outcome.response_time_ms,
-      last_checked_at=checked_at,
-      lease_until=None,
+  try:
+    update_result = session.execute(
+      update(Monitor)
+      .where(Monitor.id == monitor.id, Monitor.lease_until == claimed_lease)
+      .values(
+        status=outcome.status,
+        response_time_ms=outcome.response_time_ms,
+        last_checked_at=checked_at,
+        lease_until=None,
+      )
     )
-  )
-  if update_result.rowcount != 1:
-    session.rollback()
-    return None
+    if update_result.rowcount != 1:
+      session.rollback()
+      return None
 
-  session.commit()
-  session.refresh(result)
-  return result
+    session.commit()
+    session.refresh(result)
+    return result
+  except Exception:
+    session.rollback()
+    raise
 
 
 def dashboard_stats(session: Session) -> DashboardStats:
