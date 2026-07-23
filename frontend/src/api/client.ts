@@ -17,8 +17,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     let detail = response.statusText
     try {
-      const body = (await response.json()) as { detail?: string }
-      if (body.detail) detail = body.detail
+      const body = (await response.json()) as { detail?: string | Array<{ msg: string }> }
+      if (typeof body.detail === 'string') {
+        detail = body.detail
+      } else if (Array.isArray(body.detail) && body.detail.length > 0) {
+        detail = body.detail[0]?.msg ?? detail
+      }
     } catch {
       // ignore parse errors
     }

@@ -20,11 +20,12 @@ export function MonitorDetailPage() {
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [monitorError, setMonitorError] = useState<string | null>(null)
+  const [historyError, setHistoryError] = useState<string | null>(null)
 
   const loadMonitor = useCallback(async () => {
     if (monitorId === null) {
-      setError('ID de monitor inválido')
+      setMonitorError('ID de monitor inválido')
       setLoading(false)
       return
     }
@@ -32,12 +33,12 @@ export function MonitorDetailPage() {
     try {
       const data = await fetchMonitor(monitorId)
       setMonitor(data)
-      setError(null)
+      setMonitorError(null)
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
-        setError('Monitor no encontrado')
+        setMonitorError('Monitor no encontrado')
       } else {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
+        setMonitorError(err instanceof Error ? err.message : 'Error desconocido')
       }
       setMonitor(null)
     }
@@ -62,8 +63,13 @@ export function MonitorDetailPage() {
         setTotal(page.total)
         setHasMore(page.has_more)
         setOffset(nextOffset + page.items.length)
+        setHistoryError(null)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar historial')
+        if (err instanceof ApiError && err.status === 404) {
+          setHistoryError('Monitor no encontrado')
+        } else {
+          setHistoryError(err instanceof Error ? err.message : 'Error al cargar historial')
+        }
       } finally {
         setLoading(false)
         setLoadingMore(false)
@@ -97,10 +103,10 @@ export function MonitorDetailPage() {
         ← Panel de control
       </Link>
 
-      {error && !monitor && (
+      {monitorError && (
         <p className="notice notice--error" role="alert">
           <span className="notice__prefix">ERR</span>
-          {error}
+          {monitorError}
         </p>
       )}
 
@@ -156,6 +162,13 @@ export function MonitorDetailPage() {
             </div>
 
             <CheckHistoryTable items={results} loading={loading && results.length === 0} />
+
+            {historyError && (
+              <p className="notice notice--error" role="alert">
+                <span className="notice__prefix">ERR</span>
+                {historyError}
+              </p>
+            )}
 
             {hasMore && (
               <button
