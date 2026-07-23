@@ -26,7 +26,10 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/models/enums.py` | Enums compartidos `MonitorType` y `MonitorStatus` (fuente única de verdad). |
 | `app/schemas/monitor.py` | Schemas Pydantic para la API; importan los enums de `models.enums`. `MonitorCreate`/`MonitorRead` incluyen `timeout_seconds` (default 10s) para que checks y leases usen el valor configurado. |
 | `app/services/monitor_service.py` | Lógica sync para Celery: `get_due_monitors`, `claim_monitor_for_check`, `execute_check`, `dashboard_stats`. |
-| `app/services/monitor_service_async.py` | Lógica async para FastAPI: list/create/stats. |
+| `app/api/pagination.py` | Límites de paginación (`MAX_PAGE_LIMIT=100`, `MAX_PAGE_OFFSET=5000`) para evitar abuso. |
+| `app/schemas/check_result.py` | `CheckResultRead`, `CheckResultBrief`, `CheckResultPage`; trunca `error_message` a 500 chars. |
+| `app/api/routes/monitors.py` | `GET /monitors/{id}`, `GET /monitors/{id}/results?limit&offset`; validación de IDs y paginación. |
+| `app/services/monitor_service_async.py` | `list_check_results`, `get_monitor`, `recent_checks` en listado para sparklines. |
 | `app/checks/runner.py` | Dispatcher de checks por tipo; implementados HTTP y TCP. |
 | `app/checks/http.py` | Check HTTP con `httpx` (status code, latencia, errores). |
 | `app/worker/celery_app.py` | Configuración de Celery + beat schedule (`dispatch_interval_seconds`). |
@@ -65,3 +68,4 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 4. **Uptime 24h calculado desde `check_results`** — porcentaje de checks `up` en las últimas 24 h (no mock).
 5. **Enums en un solo módulo** — `app/models/enums.py` evita duplicación entre SQLAlchemy, Pydantic y (futuro) Celery serializers.
 6. **Estilo Control Room (frontend)** — paleta ámbar/crema/blanco, Geist Sans/Mono, sidebar + health bar, severidad visual (UP atenuado, DOWN con pulso), sin estética genérica de dashboard IA.
+7. **Historial paginado y seguro** — `monitor_id` validado con `Path(ge=1)`; paginación acotada; resultados siempre filtrados por `monitor_id` en SQL; mensajes de error truncados en API.

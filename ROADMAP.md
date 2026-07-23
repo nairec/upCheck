@@ -13,8 +13,8 @@
 - [x] Scheduler de checks con Celery + Redis (HTTP, TCP)
 - [x] `POST /monitors` para crear monitores
 - [x] Stats de uptime 24h calculadas desde historial real
+- [x] Historial de resultados por monitor (endpoint + UI)
 - [ ] CRUD completo desde la UI (editar/eliminar)
-- [ ] Historial de resultados por monitor (endpoint + UI)
 - [ ] Alertas por email al cambiar UP → DOWN
 
 ## Fase 2 — Diferenciadores
