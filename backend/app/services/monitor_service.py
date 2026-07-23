@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.checks.runner import run_check
@@ -41,14 +41,24 @@ def create_monitor(session: Session, payload: MonitorCreate) -> MonitorRead:
   return _to_read(monitor)
 
 
+def _has_active_lease(monitor: Monitor, current_time: datetime) -> bool:
+  if monitor.lease_until is None:
+    return False
+  return _ensure_utc(monitor.lease_until) > current_time
+
+
+def _lease_duration(monitor: Monitor) -> timedelta:
+  return timedelta(seconds=max(monitor.timeout_seconds + 30, 60))
+
+
 def _is_due(monitor: Monitor, current_time: datetime) -> bool:
+  if _has_active_lease(monitor, current_time):
+    return False
+
   if monitor.last_checked_at is None:
     return True
 
   last_checked = _ensure_utc(monitor.last_checked_at)
-  if last_checked > current_time:
-    return False
-
   next_check_at = last_checked + timedelta(seconds=monitor.interval_seconds)
   return next_check_at <= current_time
 
@@ -66,15 +76,19 @@ def claim_monitor_for_check(session: Session, monitor_id: int, *, now: datetime 
   if monitor is None or not monitor.enabled or not _is_due(monitor, current_time):
     return None
 
-  lease_until = current_time + timedelta(seconds=monitor.interval_seconds)
+  lease_until = current_time + _lease_duration(monitor)
   last_checked = monitor.last_checked_at
-  conditions = [Monitor.id == monitor_id, Monitor.enabled.is_(True)]
+  conditions = [
+    Monitor.id == monitor_id,
+    Monitor.enabled.is_(True),
+    or_(Monitor.lease_until.is_(None), Monitor.lease_until <= current_time),
+  ]
   if last_checked is None:
     conditions.append(Monitor.last_checked_at.is_(None))
   else:
     conditions.append(Monitor.last_checked_at == last_checked)
 
-  result = session.execute(update(Monitor).where(*conditions).values(last_checked_at=lease_until))
+  result = session.execute(update(Monitor).where(*conditions).values(lease_until=lease_until))
   if result.rowcount != 1:
     session.rollback()
     return None
@@ -82,6 +96,12 @@ def claim_monitor_for_check(session: Session, monitor_id: int, *, now: datetime 
   session.commit()
   session.refresh(monitor)
   return monitor
+
+
+def release_monitor_lease(session: Session, monitor_id: int) -> None:
+  """Clear an in-flight lease without changing last_checked_at (e.g. after a failed check)."""
+  session.execute(update(Monitor).where(Monitor.id == monitor_id).values(lease_until=None))
+  session.commit()
 
 
 def execute_check(session: Session, monitor: Monitor) -> CheckResult:
@@ -101,6 +121,7 @@ def execute_check(session: Session, monitor: Monitor) -> CheckResult:
   monitor.status = outcome.status
   monitor.response_time_ms = outcome.response_time_ms
   monitor.last_checked_at = checked_at
+  monitor.lease_until = None
 
   session.commit()
   session.refresh(result)

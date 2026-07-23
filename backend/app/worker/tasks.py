@@ -32,5 +32,9 @@ def run_monitor_check(self, monitor_id: int) -> str:
         return f"monitor {monitor_id} disabled"
       return f"monitor {monitor_id} skipped (not due or already claimed)"
 
-    result = monitor_service.execute_check(session, monitor)
-    return f"monitor {monitor_id} -> {result.status.value}"
+    try:
+      result = monitor_service.execute_check(session, monitor)
+      return f"monitor {monitor_id} -> {result.status.value}"
+    except Exception:
+      monitor_service.release_monitor_lease(session, monitor_id)
+      raise

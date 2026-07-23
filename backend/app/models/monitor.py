@@ -32,6 +32,7 @@ class Monitor(Base):
     default=MonitorStatus.UNKNOWN,
   )
   last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+  lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
   response_time_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
   created_at: Mapped[datetime] = mapped_column(
     DateTime(timezone=True), server_default=func.now(), nullable=False

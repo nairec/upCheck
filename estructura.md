@@ -33,7 +33,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/worker/tasks.py` | Tareas `dispatch_due_checks` y `run_monitor_check`. |
 | `app/core/database.py` | Engine async + `get_db()` para FastAPI. |
 | `app/core/sync_database.py` | Engine sync para workers Celery. |
-| `alembic/` | Migraciones; `001_initial_schema.py` crea tablas y seed de 2 monitores. |
+| `alembic/` | Migraciones; `001_initial_schema.py` crea tablas y seed de 2 monitores; `002_add_monitor_lease_until.py` añade columna de lease para claims atómicos. |
 | `entrypoint.sh` | Ejecuta `alembic upgrade head` antes de arrancar uvicorn. |
 
 ## Frontend (`frontend/`)
@@ -61,7 +61,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 
 1. **Doble capa de acceso a datos (async/sync)** — FastAPI no bloquea el event loop; Celery ejecuta checks síncronos (socket, httpx) sin complejidad de async en workers.
 2. **Scheduler fan-out con Celery Beat** — Beat corre cada 30 s una tarea `dispatch_due_monitors` que consulta monitores vencidos y encola `run_monitor_check(monitor_id)` por cada uno. Esto permite añadir/eliminar monitores sin reconfigurar schedules.
-3. **Estado cacheado en `Monitor`** — `status`, `response_time_ms` y `last_checked_at` se actualizan en cada check para lecturas rápidas del dashboard; `CheckResult` guarda el historial completo. `claim_monitor_for_check` reserva atómicamente un monitor antes de ejecutar el check (lease en `last_checked_at`) para evitar ejecuciones concurrentes cuando Beat vuelve a despachar mientras un check sigue en curso.
+3. **Estado cacheado en `Monitor`** — `status`, `response_time_ms` y `last_checked_at` se actualizan en cada check para lecturas rápidas del dashboard; `CheckResult` guarda el historial completo. `claim_monitor_for_check` reserva atómicamente un monitor antes de ejecutar el check usando `lease_until` (duración basada en `timeout_seconds`) para evitar ejecuciones concurrentes sin adelantar `last_checked_at`; si el check falla, `release_monitor_lease` permite reintentos inmediatos.
 4. **Uptime 24h calculado desde `check_results`** — porcentaje de checks `up` en las últimas 24 h (no mock).
 5. **Enums en un solo módulo** — `app/models/enums.py` evita duplicación entre SQLAlchemy, Pydantic y (futuro) Celery serializers.
 6. **Estilo Control Room (frontend)** — paleta ámbar/crema/blanco, Geist Sans/Mono, sidebar + health bar, severidad visual (UP atenuado, DOWN con pulso), sin estética genérica de dashboard IA.
