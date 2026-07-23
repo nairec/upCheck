@@ -4,8 +4,15 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.pagination import DEFAULT_PAGE_LIMIT, MAX_SPARKLINE_POINTS
-from app.models import CheckResult, Monitor, MonitorStatus
+from app.history import (
+  MAX_HISTORY_RAW_POINTS,
+  HistoryGranularity,
+  max_days_for,
+  resolve_granularity,
+)
+from app.models import CheckResult, CheckResultDaily, CheckResultHourly, Monitor, MonitorStatus
 from app.schemas.check_result import CheckResultBrief, CheckResultPage, CheckResultRead
+from app.schemas.history import HistoryPoint, MonitorHistoryResponse
 from app.schemas.monitor import DashboardStats, MonitorCreate, MonitorListItem, MonitorRead, MonitorSummary
 
 
@@ -84,6 +91,129 @@ async def list_check_results(
     limit=limit,
     offset=offset,
     has_more=offset + len(items) < total,
+  )
+
+
+def _uptime_percent(up_checks: int, total_checks: int) -> float:
+  if total_checks <= 0:
+    return 0.0
+  return round(up_checks / total_checks * 100, 1)
+
+
+async def get_monitor_history(
+  session: AsyncSession,
+  monitor_id: int,
+  *,
+  days: int,
+  granularity: HistoryGranularity = HistoryGranularity.AUTO,
+) -> MonitorHistoryResponse | None:
+  monitor = await session.get(Monitor, monitor_id)
+  if monitor is None:
+    return None
+
+  resolved = resolve_granularity(days, granularity)
+  capped_days = min(days, max_days_for(resolved))
+  since = datetime.now(UTC) - timedelta(days=capped_days)
+
+  if resolved == HistoryGranularity.RAW:
+    total = await session.scalar(
+      select(func.count())
+      .select_from(CheckResult)
+      .where(CheckResult.monitor_id == monitor_id, CheckResult.checked_at >= since)
+    )
+    total = total or 0
+    rows = (
+      await session.scalars(
+        select(CheckResult)
+        .where(CheckResult.monitor_id == monitor_id, CheckResult.checked_at >= since)
+        .order_by(CheckResult.checked_at.desc(), CheckResult.id.desc())
+        .limit(MAX_HISTORY_RAW_POINTS)
+      )
+    ).all()
+    points = [
+      HistoryPoint(
+        at=row.checked_at,
+        total_checks=1,
+        up_checks=1 if row.status == MonitorStatus.UP else 0,
+        uptime_percent=100.0 if row.status == MonitorStatus.UP else 0.0,
+        avg_latency_ms=row.response_time_ms,
+        status=row.status,
+        status_code=row.status_code,
+        error_message=CheckResultRead.model_validate(row).error_message,
+        id=row.id,
+      )
+      for row in reversed(rows)
+    ]
+    return MonitorHistoryResponse(
+      granularity=resolved,
+      days=capped_days,
+      points=points,
+      total=total,
+    )
+
+  if resolved == HistoryGranularity.HOURLY:
+    total = await session.scalar(
+      select(func.count())
+      .select_from(CheckResultHourly)
+      .where(CheckResultHourly.monitor_id == monitor_id, CheckResultHourly.hour >= since)
+    )
+    total = total or 0
+    rows = (
+      await session.scalars(
+        select(CheckResultHourly)
+        .where(CheckResultHourly.monitor_id == monitor_id, CheckResultHourly.hour >= since)
+        .order_by(CheckResultHourly.hour.asc())
+      )
+    ).all()
+    points = [
+      HistoryPoint(
+        at=row.hour,
+        total_checks=row.total_checks,
+        up_checks=row.up_checks,
+        uptime_percent=_uptime_percent(row.up_checks, row.total_checks),
+        avg_latency_ms=row.avg_latency_ms,
+        min_latency_ms=row.min_latency_ms,
+        max_latency_ms=row.max_latency_ms,
+      )
+      for row in rows
+    ]
+    return MonitorHistoryResponse(
+      granularity=resolved,
+      days=capped_days,
+      points=points,
+      total=total,
+    )
+
+  since_day = since.date()
+  total = await session.scalar(
+    select(func.count())
+    .select_from(CheckResultDaily)
+    .where(CheckResultDaily.monitor_id == monitor_id, CheckResultDaily.day >= since_day)
+  )
+  total = total or 0
+  rows = (
+    await session.scalars(
+      select(CheckResultDaily)
+      .where(CheckResultDaily.monitor_id == monitor_id, CheckResultDaily.day >= since_day)
+      .order_by(CheckResultDaily.day.asc())
+    )
+  ).all()
+  points = [
+    HistoryPoint(
+      at=datetime.combine(row.day, datetime.min.time(), tzinfo=UTC),
+      total_checks=row.total_checks,
+      up_checks=row.up_checks,
+      uptime_percent=_uptime_percent(row.up_checks, row.total_checks),
+      avg_latency_ms=row.avg_latency_ms,
+      downtime_minutes=row.downtime_minutes,
+    )
+    for row in rows
+  ]
+  return MonitorHistoryResponse(
+    granularity=resolved,
+    days=capped_days,
+    points=points,
+    total=total,
   )
 
 

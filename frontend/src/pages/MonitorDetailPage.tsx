@@ -1,25 +1,31 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ApiError, fetchMonitor, fetchMonitorResults } from '../api/client'
+import { ApiError, fetchMonitor, fetchMonitorHistory } from '../api/client'
+import { AggregateHistoryTable } from '../components/AggregateHistoryTable'
 import { CheckHistoryTable } from '../components/CheckHistoryTable'
 import { Sparkline } from '../components/Sparkline'
 import { StatusBadge } from '../components/StatusBadge'
-import type { CheckResult, Monitor } from '../types'
+import type { CheckResult, HistoryPoint, HistoryRange, Monitor } from '../types'
+import { HISTORY_RANGE_DAYS } from '../types'
 import { formatRelativeTime } from '../utils/time'
 
-const PAGE_SIZE = 50
+const RANGE_OPTIONS: { value: HistoryRange; label: string }[] = [
+  { value: '24h', label: '24 h' },
+  { value: '7d', label: '7 días' },
+  { value: '30d', label: '30 días' },
+  { value: '90d', label: '90 días' },
+]
 
 export function MonitorDetailPage() {
   const { id } = useParams()
   const monitorId = parseMonitorId(id)
 
   const [monitor, setMonitor] = useState<Monitor | null>(null)
-  const [results, setResults] = useState<CheckResult[]>([])
-  const [total, setTotal] = useState(0)
-  const [hasMore, setHasMore] = useState(false)
-  const [offset, setOffset] = useState(0)
+  const [range, setRange] = useState<HistoryRange>('7d')
+  const [historyPoints, setHistoryPoints] = useState<HistoryPoint[]>([])
+  const [historyGranularity, setHistoryGranularity] = useState<'raw' | 'hourly' | 'daily'>('raw')
+  const [historyTotal, setHistoryTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [monitorError, setMonitorError] = useState<string | null>(null)
   const [historyError, setHistoryError] = useState<string | null>(null)
 
@@ -44,44 +50,37 @@ export function MonitorDetailPage() {
     }
   }, [monitorId])
 
-  const loadResults = useCallback(
-    async (nextOffset: number, append: boolean) => {
-      if (monitorId === null) return
+  const loadHistory = useCallback(async () => {
+    if (monitorId === null) return
 
-      if (append) {
-        setLoadingMore(true)
+    setLoading(true)
+    try {
+      const days = HISTORY_RANGE_DAYS[range]
+      const history = await fetchMonitorHistory(monitorId, { days, granularity: 'auto' })
+      setHistoryPoints(history.points)
+      setHistoryGranularity(
+        history.granularity === 'auto' ? 'raw' : history.granularity,
+      )
+      setHistoryTotal(history.total)
+      setHistoryError(null)
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setHistoryError('Monitor no encontrado')
       } else {
-        setLoading(true)
+        setHistoryError(err instanceof Error ? err.message : 'Error al cargar historial')
       }
-
-      try {
-        const page = await fetchMonitorResults(monitorId, {
-          limit: PAGE_SIZE,
-          offset: nextOffset,
-        })
-        setResults((prev) => (append ? [...prev, ...page.items] : page.items))
-        setTotal(page.total)
-        setHasMore(page.has_more)
-        setOffset(nextOffset + page.items.length)
-        setHistoryError(null)
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 404) {
-          setHistoryError('Monitor no encontrado')
-        } else {
-          setHistoryError(err instanceof Error ? err.message : 'Error al cargar historial')
-        }
-      } finally {
-        setLoading(false)
-        setLoadingMore(false)
-      }
-    },
-    [monitorId],
-  )
+    } finally {
+      setLoading(false)
+    }
+  }, [monitorId, range])
 
   useEffect(() => {
     void loadMonitor()
-    void loadResults(0, false)
-  }, [loadMonitor, loadResults])
+  }, [loadMonitor])
+
+  useEffect(() => {
+    void loadHistory()
+  }, [loadHistory])
 
   if (monitorId === null) {
     return (
@@ -96,6 +95,12 @@ export function MonitorDetailPage() {
       </div>
     )
   }
+
+  const sparklinePoints = historyPoints.map(historyPointToSparkline)
+  const rawChecks =
+    historyGranularity === 'raw' && monitor
+      ? historyPoints.map((point) => historyPointToCheckResult(point, monitor.id))
+      : []
 
   return (
     <div className="detail">
@@ -151,34 +156,48 @@ export function MonitorDetailPage() {
           </header>
 
           <section className="detail__section">
-            <h2 className="section-header__title">Tendencia reciente</h2>
-            <Sparkline points={results.slice(0, 24).reverse()} className="detail__sparkline" />
+            <div className="section-header">
+              <h2 className="section-header__title">Tendencia</h2>
+              <div className="history-range" role="group" aria-label="Rango temporal">
+                {RANGE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`history-range__btn${range === option.value ? ' history-range__btn--active' : ''}`}
+                    onClick={() => setRange(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Sparkline points={sparklinePoints} className="detail__sparkline" />
           </section>
 
           <section className="detail__section">
             <div className="section-header">
               <h2 className="section-header__title">Historial de checks</h2>
-              <span className="section-header__count">{total} registros</span>
+              <span className="section-header__count">
+                {historyTotal} registros
+                {historyGranularity !== 'raw' ? ` (${historyGranularity})` : ''}
+              </span>
             </div>
 
-            <CheckHistoryTable items={results} loading={loading && results.length === 0} />
+            {historyGranularity === 'raw' ? (
+              <CheckHistoryTable items={rawChecks} loading={loading && rawChecks.length === 0} />
+            ) : (
+              <AggregateHistoryTable
+                items={historyPoints}
+                granularity={historyGranularity}
+                loading={loading && historyPoints.length === 0}
+              />
+            )}
 
             {historyError && (
               <p className="notice notice--error" role="alert">
                 <span className="notice__prefix">ERR</span>
                 {historyError}
               </p>
-            )}
-
-            {hasMore && (
-              <button
-                type="button"
-                className="detail__load-more"
-                disabled={loadingMore}
-                onClick={() => void loadResults(offset, true)}
-              >
-                {loadingMore ? 'Cargando…' : 'Cargar más'}
-              </button>
             )}
           </section>
         </>
@@ -192,4 +211,27 @@ function parseMonitorId(raw: string | undefined): number | null {
   const id = Number(raw)
   if (!Number.isSafeInteger(id) || id < 1) return null
   return id
+}
+
+function historyPointToSparkline(point: HistoryPoint) {
+  const status =
+    point.status ??
+    (point.uptime_percent >= 99 ? 'up' : point.uptime_percent <= 50 ? 'down' : 'degraded')
+  return {
+    status,
+    response_time_ms: point.avg_latency_ms,
+    checked_at: point.at,
+  }
+}
+
+function historyPointToCheckResult(point: HistoryPoint, monitorId: number): CheckResult {
+  return {
+    id: point.id ?? 0,
+    monitor_id: monitorId,
+    status: point.status ?? 'unknown',
+    response_time_ms: point.avg_latency_ms,
+    status_code: point.status_code ?? null,
+    error_message: point.error_message ?? null,
+    checked_at: point.at,
+  }
 }

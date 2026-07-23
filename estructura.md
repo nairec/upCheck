@@ -28,15 +28,22 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/services/monitor_service.py` | Lógica sync para Celery: `get_due_monitors`, `claim_monitor_for_check`, `execute_check`, `dashboard_stats`. |
 | `app/api/pagination.py` | Límites de paginación (`MAX_PAGE_LIMIT=100`, `MAX_PAGE_OFFSET=5000`) para evitar abuso. |
 | `app/schemas/check_result.py` | `CheckResultRead`, `CheckResultBrief`, `CheckResultPage`; trunca `error_message` a 500 chars. |
-| `app/api/routes/monitors.py` | `GET /monitors/{id}`, `GET /monitors/{id}/results?limit&offset`; validación de IDs y paginación. |
-| `app/services/monitor_service_async.py` | `list_check_results`, `get_monitor`, `recent_checks` en listado para sparklines. |
+| `app/retention.py` | Constantes de retención (30d raw, 90d hourly, 730d daily) y tamaño de lote de purge. |
+| `app/history.py` | Resolución de granularidad (`auto` → raw/hourly/daily) y límite de puntos raw en API. |
+| `app/models/aggregates.py` | Modelos `CheckResultHourly` y `CheckResultDaily` para agregados tras rollup. |
+| `app/services/retention_service.py` | Rollup raw→hourly→daily y purge por lotes; idempotente y seguro de reintentar. |
+| `app/services/monitor_service_async.py` | `get_monitor_history` consulta raw/hourly/daily según ventana temporal. |
+| `app/schemas/history.py` | `HistoryPoint`, `MonitorHistoryResponse` para el endpoint unificado. |
+| `app/api/routes/monitors.py` | `GET /monitors/{id}/history?days&granularity` además de `/results`. |
+| `app/worker/tasks.py` | Tarea `run_retention_maintenance` (rollup + purge diario). |
+| `app/worker/celery_app.py` | Beat schedule: dispatch cada 30s + retención a las 03:00 UTC. |
 | `app/checks/runner.py` | Dispatcher de checks por tipo; implementados HTTP y TCP. |
 | `app/checks/http.py` | Check HTTP con `httpx` (status code, latencia, errores). |
 | `app/worker/celery_app.py` | Configuración de Celery + beat schedule (`dispatch_interval_seconds`). |
 | `app/worker/tasks.py` | Tareas `dispatch_due_checks` y `run_monitor_check`. |
 | `app/core/database.py` | Engine async + `get_db()` para FastAPI. |
 | `app/core/sync_database.py` | Engine sync para workers Celery. |
-| `alembic/` | Migraciones; `001_initial_schema.py` crea tablas y seed de 2 monitores; `002_add_monitor_lease_until.py` añade columna de lease para claims atómicos. |
+| `alembic/` | Migraciones; `003_add_check_aggregates.py` crea tablas hourly/daily. |
 | `entrypoint.sh` | Ejecuta `alembic upgrade head` antes de arrancar uvicorn. |
 
 ## Frontend (`frontend/`)
@@ -51,7 +58,9 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `src/components/Sidebar.tsx` | Navegación lateral + `HealthBar` (uptime 24h; si no hay historial, la barra refleja el % de monitores operativos). |
 | `src/components/MonitorCard.tsx` | Card con sparkline, tiempo relativo, estados quiet/critical. |
 | `src/components/StatusBadge.tsx` | Dot + label mono (`OK`/`DOWN`/`WARN`). |
-| `src/utils/time.ts` | `formatRelativeTime()` para contexto temporal en cards. |
+| `src/pages/MonitorDetailPage.tsx` | Detalle de monitor con selector de rango (24h/7d/30d/90d) y sparkline/historial unificado. |
+| `src/components/AggregateHistoryTable.tsx` | Tabla de buckets hourly/daily (uptime, latencia, downtime). |
+| `src/components/CheckHistoryTable.tsx` | Tabla de checks individuales (granularidad raw). |
 
 ## Raíz
 
@@ -69,3 +78,4 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 5. **Enums en un solo módulo** — `app/models/enums.py` evita duplicación entre SQLAlchemy, Pydantic y (futuro) Celery serializers.
 6. **Estilo Control Room (frontend)** — paleta ámbar/crema/blanco, Geist Sans/Mono, sidebar + health bar, severidad visual (UP atenuado, DOWN con pulso), sin estética genérica de dashboard IA.
 7. **Historial paginado y seguro** — `monitor_id` validado con `Path(ge=1)`; paginación acotada; resultados siempre filtrados por `monitor_id` en SQL; mensajes de error truncados en API.
+8. **Retención en tres niveles** — raw 30d, hourly 90d, daily 2 años. Job Celery diario hace rollup antes de purge (nunca se pierden datos sin agregar). Constantes en `retention.py` (sin env vars). API `/history` elige granularidad automáticamente según el rango.

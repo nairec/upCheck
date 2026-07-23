@@ -1,4 +1,4 @@
-import type { CheckResultPage, DashboardStats, Monitor } from '../types'
+import type { CheckResultPage, DashboardStats, Monitor, MonitorHistoryResponse } from '../types'
 
 const API_BASE = '/api/v1'
 
@@ -56,6 +56,20 @@ export function fetchMonitorResults(
     offset: String(offset),
   })
   return request<CheckResultPage>(`/monitors/${id}/results?${query}`)
+}
+
+export function fetchMonitorHistory(
+  id: number,
+  params: { days?: number; granularity?: 'auto' | 'raw' | 'hourly' | 'daily' } = {},
+): Promise<MonitorHistoryResponse> {
+  if (!Number.isInteger(id) || id < 1) {
+    return Promise.reject(new ApiError('Invalid monitor id', 400))
+  }
+  const query = new URLSearchParams({
+    days: String(params.days ?? 7),
+    granularity: params.granularity ?? 'auto',
+  })
+  return request<MonitorHistoryResponse>(`/monitors/${id}/history?${query}`)
 }
 
 export function fetchDashboardStats(): Promise<DashboardStats> {

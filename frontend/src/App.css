@@ -839,6 +839,35 @@
   padding: 8px 0;
 }
 
+.history-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.history-range__btn {
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.history-range__btn:hover {
+  border-color: var(--amber-dim);
+  color: var(--cream);
+}
+
+.history-range__btn--active {
+  border-color: var(--amber);
+  color: var(--white);
+  background: rgba(245, 158, 11, 0.08);
+}
+
 .detail__load-more {
   margin-top: 16px;
   width: 100%;

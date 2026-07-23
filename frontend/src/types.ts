@@ -52,3 +52,36 @@ export interface DashboardStats {
   monitors: MonitorSummary
   uptime_24h_percent: number | null
 }
+
+export type HistoryGranularity = 'auto' | 'raw' | 'hourly' | 'daily'
+
+export interface HistoryPoint {
+  at: string
+  total_checks: number
+  up_checks: number
+  uptime_percent: number
+  avg_latency_ms: number | null
+  min_latency_ms?: number | null
+  max_latency_ms?: number | null
+  downtime_minutes?: number | null
+  status?: MonitorStatus | null
+  status_code?: number | null
+  error_message?: string | null
+  id?: number | null
+}
+
+export interface MonitorHistoryResponse {
+  granularity: HistoryGranularity
+  days: number
+  points: HistoryPoint[]
+  total: number
+}
+
+export type HistoryRange = '24h' | '7d' | '30d' | '90d'
+
+export const HISTORY_RANGE_DAYS: Record<HistoryRange, number> = {
+  '24h': 1,
+  '7d': 7,
+  '30d': 30,
+  '90d': 90,
+}

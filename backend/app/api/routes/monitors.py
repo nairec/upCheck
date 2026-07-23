@@ -9,7 +9,9 @@ from app.api.pagination import (
   MAX_PAGE_OFFSET,
 )
 from app.core.database import get_db
+from app.history import HistoryGranularity, max_days_for
 from app.schemas.check_result import CheckResultPage
+from app.schemas.history import MonitorHistoryResponse
 from app.schemas.monitor import DashboardStats, MonitorCreate, MonitorListItem, MonitorRead
 from app.services import monitor_service_async as monitor_service
 
@@ -18,6 +20,14 @@ router = APIRouter()
 MonitorIdPath = Annotated[int, Path(ge=1, le=2_147_483_647, description="Monitor ID")]
 PageLimit = Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT, description="Results per page")]
 PageOffset = Annotated[int, Query(ge=0, le=MAX_PAGE_OFFSET, description="Results to skip")]
+HistoryDays = Annotated[
+  int,
+  Query(ge=1, le=max_days_for(HistoryGranularity.DAILY), description="Days of history to return"),
+]
+HistoryGranularityQuery = Annotated[
+  HistoryGranularity,
+  Query(description="Data tier: auto picks raw/hourly/daily by window size"),
+]
 
 
 @router.get("", response_model=list[MonitorListItem])
@@ -58,3 +68,18 @@ async def list_monitor_results(
   if page is None:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Monitor not found")
   return page
+
+
+@router.get("/{monitor_id}/history", response_model=MonitorHistoryResponse)
+async def get_monitor_history(
+  monitor_id: MonitorIdPath,
+  db: AsyncSession = Depends(get_db),
+  days: HistoryDays = 7,
+  granularity: HistoryGranularityQuery = HistoryGranularity.AUTO,
+) -> MonitorHistoryResponse:
+  history = await monitor_service.get_monitor_history(
+    db, monitor_id, days=days, granularity=granularity
+  )
+  if history is None:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Monitor not found")
+  return history
