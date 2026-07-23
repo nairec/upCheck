@@ -1,5 +1,7 @@
+import { Link } from 'react-router-dom'
 import type { Monitor } from '../types'
 import { formatRelativeTime } from '../utils/time'
+import { Sparkline } from './Sparkline'
 import { StatusBadge } from './StatusBadge'
 
 const TYPE_LABELS: Record<Monitor['type'], string> = {
@@ -13,10 +15,12 @@ const TYPE_LABELS: Record<Monitor['type'], string> = {
 export function MonitorCard({ monitor }: { monitor: Monitor }) {
   const isCritical = monitor.status === 'down'
   const isQuiet = monitor.status === 'up' || monitor.status === 'unknown'
+  const recentChecks = monitor.recent_checks ?? []
 
   return (
-    <article
-      className={`card card--${monitor.status}${isCritical ? ' card--critical' : ''}${isQuiet ? ' card--quiet' : ''}`}
+    <Link
+      to={`/monitors/${monitor.id}`}
+      className={`card card--link card--${monitor.status}${isCritical ? ' card--critical' : ''}${isQuiet ? ' card--quiet' : ''}`}
     >
       <header className="card__header">
         <div className="card__title-row">
@@ -32,15 +36,7 @@ export function MonitorCard({ monitor }: { monitor: Monitor }) {
         {monitor.target}
       </p>
 
-      <div className="card__sparkline" aria-hidden="true">
-        {Array.from({ length: 12 }, (_, i) => (
-          <span
-            key={i}
-            className="card__sparkline-bar"
-            style={{ height: `${20 + ((monitor.id * 7 + i * 13) % 60)}%` }}
-          />
-        ))}
-      </div>
+      <Sparkline points={recentChecks} className="card__sparkline" />
 
       <footer className="card__meta">
         <span className="tag">{TYPE_LABELS[monitor.type]}</span>
@@ -52,6 +48,6 @@ export function MonitorCard({ monitor }: { monitor: Monitor }) {
         </span>
         <span className="card__time">{formatRelativeTime(monitor.last_checked_at)}</span>
       </footer>
-    </article>
+    </Link>
   )
 }
