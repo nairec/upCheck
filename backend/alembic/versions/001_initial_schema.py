@@ -20,7 +20,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
   op.create_table(
     "monitors",
-    sa.Column("id", sa.Integer(), nullable=False),
+    sa.Column("id", sa.Integer(), sa.Identity(), nullable=False),
     sa.Column("name", sa.String(length=120), nullable=False),
     sa.Column("type", sa.Enum("http", "tcp", "ping", "postgres", "redis", name="monitortype", native_enum=False), nullable=False),
     sa.Column("target", sa.String(length=500), nullable=False),
@@ -37,7 +37,7 @@ def upgrade() -> None:
 
   op.create_table(
     "check_results",
-    sa.Column("id", sa.Integer(), nullable=False),
+    sa.Column("id", sa.Integer(), sa.Identity(), nullable=False),
     sa.Column("monitor_id", sa.Integer(), nullable=False),
     sa.Column("status", sa.Enum("up", "down", "degraded", "unknown", name="monitorstatus", native_enum=False), nullable=False),
     sa.Column("response_time_ms", sa.Float(), nullable=True),
