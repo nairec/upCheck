@@ -98,13 +98,32 @@ def claim_monitor_for_check(session: Session, monitor_id: int, *, now: datetime 
   return monitor
 
 
-def release_monitor_lease(session: Session, monitor_id: int) -> None:
-  """Clear an in-flight lease without changing last_checked_at (e.g. after a failed check)."""
-  session.execute(update(Monitor).where(Monitor.id == monitor_id).values(lease_until=None))
+def release_monitor_lease(
+  session: Session,
+  monitor_id: int,
+  *,
+  expected_lease_until: datetime,
+) -> bool:
+  """Clear an in-flight lease only if it still belongs to the caller."""
+  result = session.execute(
+    update(Monitor)
+    .where(Monitor.id == monitor_id, Monitor.lease_until == expected_lease_until)
+    .values(lease_until=None)
+  )
   session.commit()
+  return result.rowcount == 1
 
 
-def execute_check(session: Session, monitor: Monitor) -> CheckResult:
+def execute_check(
+  session: Session,
+  monitor: Monitor,
+  *,
+  expected_lease_until: datetime | None = None,
+) -> CheckResult | None:
+  claimed_lease = expected_lease_until if expected_lease_until is not None else monitor.lease_until
+  if claimed_lease is None:
+    return None
+
   outcome = run_check(monitor.type, monitor.target, monitor.timeout_seconds)
   checked_at = datetime.now(UTC)
 
@@ -118,10 +137,19 @@ def execute_check(session: Session, monitor: Monitor) -> CheckResult:
   )
   session.add(result)
 
-  monitor.status = outcome.status
-  monitor.response_time_ms = outcome.response_time_ms
-  monitor.last_checked_at = checked_at
-  monitor.lease_until = None
+  update_result = session.execute(
+    update(Monitor)
+    .where(Monitor.id == monitor.id, Monitor.lease_until == claimed_lease)
+    .values(
+      status=outcome.status,
+      response_time_ms=outcome.response_time_ms,
+      last_checked_at=checked_at,
+      lease_until=None,
+    )
+  )
+  if update_result.rowcount != 1:
+    session.rollback()
+    return None
 
   session.commit()
   session.refresh(result)
