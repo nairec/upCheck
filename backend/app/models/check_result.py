@@ -20,7 +20,10 @@ class CheckResult(Base):
   monitor_id: Mapped[int] = mapped_column(
     ForeignKey("monitors.id", ondelete="CASCADE"), nullable=False, index=True
   )
-  status: Mapped[MonitorStatus] = mapped_column(Enum(MonitorStatus, native_enum=False), nullable=False)
+  status: Mapped[MonitorStatus] = mapped_column(
+    Enum(MonitorStatus, values_callable=lambda obj: [e.value for e in obj], native_enum=False),
+    nullable=False,
+  )
   response_time_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
   status_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
   error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

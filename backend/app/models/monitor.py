@@ -18,13 +18,16 @@ class Monitor(Base):
 
   id: Mapped[int] = mapped_column(Integer, primary_key=True)
   name: Mapped[str] = mapped_column(String(120), nullable=False)
-  type: Mapped[MonitorType] = mapped_column(Enum(MonitorType, native_enum=False), nullable=False)
+  type: Mapped[MonitorType] = mapped_column(
+    Enum(MonitorType, values_callable=lambda obj: [e.value for e in obj], native_enum=False),
+    nullable=False,
+  )
   target: Mapped[str] = mapped_column(String(500), nullable=False)
   interval_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
   timeout_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
   enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
   status: Mapped[MonitorStatus] = mapped_column(
-    Enum(MonitorStatus, native_enum=False),
+    Enum(MonitorStatus, values_callable=lambda obj: [e.value for e in obj], native_enum=False),
     nullable=False,
     default=MonitorStatus.UNKNOWN,
   )
