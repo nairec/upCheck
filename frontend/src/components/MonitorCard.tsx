@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { Monitor } from '../types'
+import { formatMonitorIndex } from '../utils/monitors'
 import { formatRelativeTime } from '../utils/time'
 import { Sparkline } from './Sparkline'
 import { StatusBadge } from './StatusBadge'
@@ -12,7 +13,7 @@ const TYPE_LABELS: Record<Monitor['type'], string> = {
   redis: 'REDIS',
 }
 
-export function MonitorCard({ monitor }: { monitor: Monitor }) {
+export function MonitorCard({ monitor, displayIndex }: { monitor: Monitor; displayIndex: number }) {
   const isCritical = monitor.status === 'down'
   const isQuiet = monitor.status === 'up' || monitor.status === 'unknown'
   const recentChecks = monitor.recent_checks ?? []
@@ -25,7 +26,7 @@ export function MonitorCard({ monitor }: { monitor: Monitor }) {
       <header className="card__header">
         <div className="card__title-row">
           <span className="card__index" aria-hidden="true">
-            {String(monitor.id).padStart(2, '0')}
+            {formatMonitorIndex(displayIndex)}
           </span>
           <h3 className="card__title">{monitor.name}</h3>
         </div>

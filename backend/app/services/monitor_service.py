@@ -126,6 +126,7 @@ def execute_check(
   if claimed_lease is None:
     return None
 
+  previous_status = monitor.status
   outcome = run_check(monitor.type, monitor.target, monitor.timeout_seconds)
   checked_at = datetime.now(UTC)
 
@@ -156,6 +157,19 @@ def execute_check(
 
     session.commit()
     session.refresh(result)
+
+    from app.services import alert_service
+
+    alert_service.handle_status_change(
+      session,
+      monitor=monitor,
+      previous_status=previous_status,
+      new_status=outcome.status,
+      check_result=result,
+      now=checked_at,
+    )
+    session.refresh(monitor)
+
     return result
   except Exception:
     session.rollback()

@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ApiError, deleteMonitor, fetchMonitor, fetchMonitorHistory, updateMonitor } from '../api/client'
+import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
+import { ApiError, deleteMonitor, fetchMonitor, fetchMonitorHistory, fetchMonitors, updateMonitor } from '../api/client'
 import { AggregateHistoryTable } from '../components/AggregateHistoryTable'
 import { CheckHistoryTable } from '../components/CheckHistoryTable'
 import { MonitorFormModal } from '../components/MonitorFormModal'
 import { Sparkline } from '../components/Sparkline'
 import { StatusBadge } from '../components/StatusBadge'
+import type { ShellContext } from '../context/shell'
 import type { CheckResult, HistoryPoint, HistoryRange, Monitor } from '../types'
 import { HISTORY_RANGE_DAYS } from '../types'
 import { monitorToInput } from '../utils/monitorForm'
+import { formatMonitorIndex, monitorDisplayIndex } from '../utils/monitors'
 import { formatRelativeTime } from '../utils/time'
 
 const RANGE_OPTIONS: { value: HistoryRange; label: string }[] = [
@@ -20,10 +22,12 @@ const RANGE_OPTIONS: { value: HistoryRange; label: string }[] = [
 
 export function MonitorDetailPage() {
   const navigate = useNavigate()
+  const { refreshMonitorCount } = useOutletContext<ShellContext>()
   const { id } = useParams()
   const monitorId = parseMonitorId(id)
 
   const [monitor, setMonitor] = useState<Monitor | null>(null)
+  const [displayIndex, setDisplayIndex] = useState<number | null>(null)
   const [range, setRange] = useState<HistoryRange>('7d')
   const [historyPoints, setHistoryPoints] = useState<HistoryPoint[]>([])
   const [historyGranularity, setHistoryGranularity] = useState<'raw' | 'hourly' | 'daily'>('raw')
@@ -42,8 +46,9 @@ export function MonitorDetailPage() {
     }
 
     try {
-      const data = await fetchMonitor(monitorId)
+      const [data, monitors] = await Promise.all([fetchMonitor(monitorId), fetchMonitors()])
       setMonitor(data)
+      setDisplayIndex(monitorDisplayIndex(monitors, monitorId))
       setMonitorError(null)
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
@@ -104,6 +109,7 @@ export function MonitorDetailPage() {
     setDeleting(true)
     try {
       await deleteMonitor(monitorId)
+      await refreshMonitorCount()
       navigate('/')
     } catch (err) {
       setMonitorError(err instanceof Error ? err.message : 'No se pudo eliminar el monitor')
@@ -150,7 +156,9 @@ export function MonitorDetailPage() {
         <>
           <header className="detail__header">
             <div className="detail__title-row">
-              <span className="detail__index">{String(monitor.id).padStart(2, '0')}</span>
+              <span className="detail__index">
+                {displayIndex != null ? formatMonitorIndex(displayIndex) : '—'}
+              </span>
               <div>
                 <h1 className="detail__title">{monitor.name}</h1>
                 <p className="detail__target">{monitor.target}</p>

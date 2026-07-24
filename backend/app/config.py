@@ -18,6 +18,22 @@ class Settings(BaseSettings):
     dispatch_interval_seconds: int = 30
     run_migrations_on_startup: bool = True
 
+    # Public dashboard URL for links in alert emails (optional).
+    app_public_url: str | None = None
+
+    # Email alerts — disabled until ALERTS_ENABLED=true and SMTP_HOST are set.
+    alerts_enabled: bool = False
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str = "upCheck <alerts@localhost>"
+    smtp_use_tls: bool = True
+
+    @property
+    def smtp_configured(self) -> bool:
+      return bool(self.smtp_host and self.smtp_host.strip())
+
 
 @lru_cache
 def get_settings() -> Settings:

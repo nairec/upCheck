@@ -8,11 +8,12 @@ import { StatsBar } from '../components/StatsBar'
 import type { ShellContext } from '../context/shell'
 import type { DashboardStats, Monitor } from '../types'
 import { DEFAULT_MONITOR_INPUT } from '../utils/monitorForm'
+import { sortMonitors } from '../utils/monitors'
 
 const REFRESH_INTERVAL_MS = 30_000
 
 export function DashboardPage() {
-  const { setMonitorCount } = useOutletContext<ShellContext>()
+  const { refreshMonitorCount } = useOutletContext<ShellContext>()
   const [monitors, setMonitors] = useState<Monitor[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +29,7 @@ export function DashboardPage() {
       ])
       setMonitors(monitorList)
       setStats(dashboardStats)
-      setMonitorCount(monitorList.length)
+      await refreshMonitorCount()
       setError(null)
       setRefreshKey((k) => k + 1)
     } catch (err) {
@@ -36,7 +37,7 @@ export function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [setMonitorCount])
+  }, [refreshMonitorCount])
 
   useEffect(() => {
     void load()
@@ -101,8 +102,8 @@ export function DashboardPage() {
             </div>
 
             <section className="grid" aria-label="Monitores">
-              {monitors.map((monitor) => (
-                <MonitorCard key={monitor.id} monitor={monitor} />
+              {sortMonitors(monitors).map((monitor, index) => (
+                <MonitorCard key={monitor.id} monitor={monitor} displayIndex={index + 1} />
               ))}
             </section>
 
