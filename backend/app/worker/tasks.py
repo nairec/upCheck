@@ -54,3 +54,14 @@ def run_retention_maintenance() -> dict[str, int]:
   with SyncSessionLocal() as session:
     stats = retention_service.run_retention_maintenance(session)
   return asdict(stats)
+
+
+@celery_app.task(name="app.worker.tasks.send_down_alert_email", bind=True, max_retries=2)
+def send_down_alert_email(self, monitor_id: int, check_result_id: int) -> str:
+  with SyncSessionLocal() as session:
+    from app.services import alert_service
+
+    sent = alert_service.deliver_down_alert(session, monitor_id, check_result_id)
+  if sent:
+    return f"down alert sent for monitor {monitor_id}"
+  return f"down alert skipped for monitor {monitor_id}"

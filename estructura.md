@@ -42,7 +42,8 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/worker/tasks.py` | `dispatch_due_checks`, `run_monitor_check`, `run_retention_maintenance`. |
 | `app/core/database.py` | Engine async + `get_db()` para FastAPI. |
 | `app/core/sync_database.py` | Engine sync para workers Celery. |
-| `alembic/` | Migraciones; `003_add_check_aggregates.py` crea tablas hourly/daily. |
+| `app/api/routes/monitors.py` | CRUD de monitores: `GET/POST/PATCH/DELETE`, `/results`, `/history`. |
+| `alembic/` | `005_add_alert_recipients.py` añade destinatarios y `monitors.last_down_alert_at`. |
 | `entrypoint.sh` | Ejecuta `alembic upgrade head` antes de arrancar uvicorn. |
 
 ## Frontend (`frontend/`)
@@ -81,3 +82,4 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 6. **Estilo Control Room (frontend)** — paleta ámbar/crema/blanco, Geist Sans/Mono, sidebar + health bar, severidad visual (UP atenuado, DOWN con pulso), sin estética genérica de dashboard IA.
 7. **Historial paginado y seguro** — `monitor_id` validado con `Path(ge=1)`; paginación acotada; resultados siempre filtrados por `monitor_id` en SQL; mensajes de error truncados en API.
 8. **Retención en tres niveles** — raw 30d, hourly 90d, daily 2 años. Job Celery diario hace rollup antes de purge (nunca se pierden datos sin agregar). Constantes en `retention.py` (sin env vars). API `/history` elige granularidad automáticamente según el rango.
+9. **Alertas email UP→DOWN** — SMTP configurable por env; cooldown 15 min en `alerts.py`; destinatarios en BD; envío asíncrono vía Celery para no bloquear checks.
