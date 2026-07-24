@@ -22,7 +22,6 @@ export function Sidebar({ monitorCount }: SidebarProps) {
         </span>
         <div>
           <p className="sidebar__title">upCheck</p>
-          <p className="sidebar__tag">control room</p>
         </div>
       </Link>
 
