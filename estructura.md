@@ -41,6 +41,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/worker/celery_app.py` | Celery + beat: dispatch cada 30s y retención diaria a las 03:00 UTC. |
 | `app/worker/tasks.py` | `dispatch_due_checks`, `run_monitor_check`, `run_retention_maintenance`, `send_down_alert_email`. |
 | `app/alerts.py` | Constantes de alertas (`DOWN_ALERT_COOLDOWN_MINUTES=15`). |
+| `app/models/alert_recipient.py` | Destinatarios de email por cuenta. |
 | `app/models/alert_settings.py` | Preferencias de cuenta: cooldown, cuándo avisar (singleton id=1). |
 | `src/pages/AlertsPage.tsx` | Ajustes de alertas y CRUD de destinatarios. |
 | `app/services/email_service.py` | Envío SMTP (`smtplib`); omitido si alerts deshabilitadas o sin SMTP. |
@@ -50,7 +51,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `backend/.env.example` | Plantilla SMTP y `ALERTS_ENABLED`. |
 | `app/core/database.py` | Engine async + `get_db()` para FastAPI. |
 | `app/core/sync_database.py` | Engine sync para workers Celery. |
-| `alembic/` | `005_add_alert_recipients.py` añade destinatarios y `monitors.last_down_alert_at`. |
+| `alembic/` | `007_reset_monitor_identity.py` elimina restos de monitores demo y sincroniza la secuencia de ids. |
 | `entrypoint.sh` | Ejecuta `alembic upgrade head` antes de arrancar uvicorn. |
 
 ## Frontend (`frontend/`)
@@ -61,14 +62,14 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `src/fonts.css` | `@font-face` para las fuentes Geist. |
 | `src/index.css` | Design tokens Control Room: ámbar, crema, blanco sobre fondo `#0a0908`; textura noise sutil. |
 | `src/App.css` | Layout: sidebar, health bar, stats grid, cards con jerarquía de severidad, responsive. |
-| `src/App.tsx` | Shell Control Room: sidebar + panel, reloj UTC, skeleton loading, refresh bar. |
+| `src/App.tsx` | Shell Control Room: sidebar + panel, reloj UTC, skeleton loading, refresh bar; refresca el contador de monitores al cambiar de ruta. |
 | `src/components/Sidebar.tsx` | Navegación lateral + `HealthBar` (uptime 24h; si no hay historial, la barra refleja el % de monitores operativos). |
-| `src/components/MonitorCard.tsx` | Card con sparkline, tiempo relativo, estados quiet/critical. |
+| `src/components/MonitorCard.tsx` | Card con sparkline, tiempo relativo, estados quiet/critical; índice visual `01`… (posición en lista, no id de BD). |
 | `src/components/StatusBadge.tsx` | Dot + label mono (`OK`/`DOWN`/`WARN`). |
 | `src/components/MonitorForm.tsx` | Formulario reutilizable para crear/editar monitores. |
 | `src/components/MonitorFormModal.tsx` | Modal con el formulario de monitor. |
 | `src/pages/DashboardPage.tsx` | Panel principal con botón «Añadir monitor» y listado de cards. |
-| `src/pages/MonitorDetailPage.tsx` | Detalle con historial, editar y eliminar monitor. |
+| `src/pages/MonitorDetailPage.tsx` | Detalle con historial, editar y eliminar monitor; actualiza el contador del sidebar al borrar. |
 | `src/components/AggregateHistoryTable.tsx` | Tabla de buckets hourly/daily (uptime, latencia, downtime). |
 | `src/components/CheckHistoryTable.tsx` | Tabla de checks individuales (granularidad raw). |
 

@@ -14,7 +14,7 @@ async def test_create_and_list_monitor(client: AsyncClient) -> None:
   payload = {
     "name": "Test API",
     "type": "http",
-    "target": "https://httpbin.org/status/200",
+    "target": "https://example.com/health",
     "interval_seconds": 60,
     "enabled": True,
   }
