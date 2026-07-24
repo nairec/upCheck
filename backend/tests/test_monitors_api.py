@@ -67,3 +67,92 @@ async def test_dashboard_stats(client: AsyncClient) -> None:
   stats = response.json()
   assert stats["monitors"]["total"] == 1
   assert stats["monitors"]["unknown"] == 1
+
+
+@pytest.mark.asyncio
+async def test_update_monitor(client: AsyncClient) -> None:
+  created = await client.post(
+    "/api/v1/monitors",
+    json={
+      "name": "Original",
+      "type": "http",
+      "target": "https://example.com/health",
+      "interval_seconds": 60,
+      "enabled": True,
+    },
+  )
+  monitor_id = created.json()["id"]
+
+  response = await client.patch(
+    f"/api/v1/monitors/{monitor_id}",
+    json={"name": "Renamed", "interval_seconds": 120, "enabled": False},
+  )
+  assert response.status_code == 200
+  body = response.json()
+  assert body["name"] == "Renamed"
+  assert body["interval_seconds"] == 120
+  assert body["enabled"] is False
+  assert body["target"] == "https://example.com/health"
+
+
+@pytest.mark.asyncio
+async def test_update_monitor_not_found(client: AsyncClient) -> None:
+  response = await client.patch("/api/v1/monitors/99999", json={"name": "Ghost"})
+  assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_monitor(client: AsyncClient) -> None:
+  created = await client.post(
+    "/api/v1/monitors",
+    json={
+      "name": "Disposable",
+      "type": "tcp",
+      "target": "example.com:443",
+      "interval_seconds": 60,
+      "enabled": True,
+    },
+  )
+  monitor_id = created.json()["id"]
+
+  delete_response = await client.delete(f"/api/v1/monitors/{monitor_id}")
+  assert delete_response.status_code == 204
+
+  get_response = await client.get(f"/api/v1/monitors/{monitor_id}")
+  assert get_response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_monitor_not_found(client: AsyncClient) -> None:
+  response = await client.delete("/api/v1/monitors/99999")
+  assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_create_monitor_rejects_invalid_http_target(client: AsyncClient) -> None:
+  response = await client.post(
+    "/api/v1/monitors",
+    json={
+      "name": "Bad URL",
+      "type": "http",
+      "target": "example.com",
+      "interval_seconds": 60,
+      "enabled": True,
+    },
+  )
+  assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_monitor_rejects_unsupported_type(client: AsyncClient) -> None:
+  response = await client.post(
+    "/api/v1/monitors",
+    json={
+      "name": "Redis",
+      "type": "redis",
+      "target": "localhost:6379",
+      "interval_seconds": 60,
+      "enabled": True,
+    },
+  )
+  assert response.status_code == 422

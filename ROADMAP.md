@@ -16,7 +16,7 @@
 - [x] Historial de resultados por monitor (endpoint + UI)
 - [x] Retención en 3 niveles (raw 30d / hourly 90d / daily 2y) con rollup + purge
 - [x] API `/history` con granularidad auto y selector de rango en UI (24h–90d)
-- [ ] CRUD completo desde la UI (editar/eliminar)
+- [x] CRUD completo desde la UI (crear, editar, eliminar)
 - [ ] Alertas por email al cambiar UP → DOWN
 
 ## Fase 2 — Diferenciadores

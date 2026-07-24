@@ -34,7 +34,8 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/services/retention_service.py` | Rollup raw→hourly→daily y purge por lotes; idempotente y seguro de reintentar. |
 | `app/services/monitor_service_async.py` | `get_monitor_history` consulta raw/hourly/daily según ventana temporal. |
 | `app/schemas/history.py` | `HistoryPoint`, `MonitorHistoryResponse` para el endpoint unificado. |
-| `app/api/routes/monitors.py` | `GET /monitors/{id}`, `/results`, `/history`; validación de IDs y paginación. |
+| `app/api/routes/monitors.py` | CRUD de monitores: `GET/POST/PATCH/DELETE`, `/results`, `/history`. |
+| `app/schemas/monitor_validation.py` | Validación de target según tipo (URL HTTP, host:puerto TCP). |
 | `app/checks/runner.py` | Dispatcher de checks por tipo; implementados HTTP y TCP. |
 | `app/checks/http.py` | Check HTTP con `httpx` (status code, latencia, errores). |
 | `app/worker/celery_app.py` | Celery + beat: dispatch cada 30s y retención diaria a las 03:00 UTC. |
@@ -56,7 +57,10 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `src/components/Sidebar.tsx` | Navegación lateral + `HealthBar` (uptime 24h; si no hay historial, la barra refleja el % de monitores operativos). |
 | `src/components/MonitorCard.tsx` | Card con sparkline, tiempo relativo, estados quiet/critical. |
 | `src/components/StatusBadge.tsx` | Dot + label mono (`OK`/`DOWN`/`WARN`). |
-| `src/pages/MonitorDetailPage.tsx` | Detalle de monitor con selector de rango (24h/7d/30d/90d) y sparkline/historial unificado. |
+| `src/components/MonitorForm.tsx` | Formulario reutilizable para crear/editar monitores. |
+| `src/components/MonitorFormModal.tsx` | Modal con el formulario de monitor. |
+| `src/pages/DashboardPage.tsx` | Panel principal con botón «Añadir monitor» y listado de cards. |
+| `src/pages/MonitorDetailPage.tsx` | Detalle con historial, editar y eliminar monitor. |
 | `src/components/AggregateHistoryTable.tsx` | Tabla de buckets hourly/daily (uptime, latencia, downtime). |
 | `src/components/CheckHistoryTable.tsx` | Tabla de checks individuales (granularidad raw). |
 

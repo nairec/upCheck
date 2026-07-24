@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { fetchDashboardStats, fetchMonitors } from '../api/client'
+import { createMonitor, fetchDashboardStats, fetchMonitors } from '../api/client'
 import { MonitorCard } from '../components/MonitorCard'
+import { MonitorFormModal } from '../components/MonitorFormModal'
 import { HealthBar } from '../components/Sidebar'
 import { StatsBar } from '../components/StatsBar'
 import type { ShellContext } from '../context/shell'
 import type { DashboardStats, Monitor } from '../types'
+import { DEFAULT_MONITOR_INPUT } from '../utils/monitorForm'
 
 const REFRESH_INTERVAL_MS = 30_000
 
@@ -16,6 +18,7 @@ export function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -41,6 +44,12 @@ export function DashboardPage() {
     return () => clearInterval(timer)
   }, [load])
 
+  async function handleCreate(values: typeof DEFAULT_MONITOR_INPUT) {
+    await createMonitor(values)
+    setShowCreateModal(false)
+    await load()
+  }
+
   return (
     <>
       <header className="main__header">
@@ -48,9 +57,18 @@ export function DashboardPage() {
           <p className="main__eyebrow">infraestructura</p>
           <h1 className="main__title">Panel de control</h1>
         </div>
-        <div className="main__clock" aria-label="Hora del sistema">
-          <span className="main__clock-label">UTC</span>
-          <Clock />
+        <div className="main__header-actions">
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => setShowCreateModal(true)}
+          >
+            + Añadir monitor
+          </button>
+          <div className="main__clock" aria-label="Hora del sistema">
+            <span className="main__clock-label">UTC</span>
+            <Clock />
+          </div>
         </div>
       </header>
 
@@ -79,7 +97,7 @@ export function DashboardPage() {
 
             <div className="section-header">
               <h2 className="section-header__title">Monitores</h2>
-              <span className="section-header__count">{monitors.length} activos</span>
+              <span className="section-header__count">{monitors.length} configurados</span>
             </div>
 
             <section className="grid" aria-label="Monitores">
@@ -89,10 +107,19 @@ export function DashboardPage() {
             </section>
 
             {monitors.length === 0 && (
-              <p className="notice">
-                <span className="notice__prefix">INFO</span>
-                No hay monitores configurados. Añade uno vía API o migración seed.
-              </p>
+              <div className="empty-state">
+                <p className="notice">
+                  <span className="notice__prefix">INFO</span>
+                  No hay monitores configurados todavía.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  Crear el primero
+                </button>
+              </div>
             )}
           </>
         )}
@@ -103,6 +130,16 @@ export function DashboardPage() {
         <span className="main__footer-sep">·</span>
         <span>upCheck control room</span>
       </footer>
+
+      {showCreateModal && (
+        <MonitorFormModal
+          title="Nuevo monitor"
+          submitLabel="Crear monitor"
+          initial={DEFAULT_MONITOR_INPUT}
+          onSubmit={handleCreate}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
     </>
   )
 }
