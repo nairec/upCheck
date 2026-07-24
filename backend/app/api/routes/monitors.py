@@ -12,7 +12,7 @@ from app.core.database import get_db
 from app.history import HistoryGranularity, max_days_for
 from app.schemas.check_result import CheckResultPage
 from app.schemas.history import MonitorHistoryResponse
-from app.schemas.monitor import DashboardStats, MonitorCreate, MonitorListItem, MonitorRead
+from app.schemas.monitor import DashboardStats, MonitorCreate, MonitorListItem, MonitorRead, MonitorUpdate
 from app.services import monitor_service_async as monitor_service
 
 router = APIRouter()
@@ -40,6 +40,25 @@ async def create_monitor(
   payload: MonitorCreate, db: AsyncSession = Depends(get_db)
 ) -> MonitorRead:
   return await monitor_service.create_monitor(db, payload)
+
+
+@router.patch("/{monitor_id}", response_model=MonitorRead)
+async def update_monitor(
+  monitor_id: MonitorIdPath,
+  payload: MonitorUpdate,
+  db: AsyncSession = Depends(get_db),
+) -> MonitorRead:
+  monitor = await monitor_service.update_monitor(db, monitor_id, payload)
+  if monitor is None:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Monitor not found")
+  return monitor
+
+
+@router.delete("/{monitor_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_monitor(monitor_id: MonitorIdPath, db: AsyncSession = Depends(get_db)) -> None:
+  deleted = await monitor_service.delete_monitor(db, monitor_id)
+  if not deleted:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Monitor not found")
 
 
 @router.get("/stats", response_model=DashboardStats)

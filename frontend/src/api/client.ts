@@ -1,4 +1,5 @@
 import type { CheckResultPage, DashboardStats, Monitor, MonitorHistoryResponse } from '../types'
+import type { MonitorInput } from '../utils/monitorForm'
 
 const API_BASE = '/api/v1'
 
@@ -74,4 +75,40 @@ export function fetchMonitorHistory(
 
 export function fetchDashboardStats(): Promise<DashboardStats> {
   return request<DashboardStats>('/monitors/stats')
+}
+
+export function createMonitor(payload: MonitorInput): Promise<Monitor> {
+  return request<Monitor>('/monitors', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateMonitor(id: number, payload: Partial<MonitorInput>): Promise<Monitor> {
+  if (!Number.isInteger(id) || id < 1) {
+    return Promise.reject(new ApiError('Invalid monitor id', 400))
+  }
+  return request<Monitor>(`/monitors/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteMonitor(id: number): Promise<void> {
+  if (!Number.isInteger(id) || id < 1) {
+    throw new ApiError('Invalid monitor id', 400)
+  }
+  const response = await fetch(`${API_BASE}/monitors/${id}`, { method: 'DELETE' })
+  if (!response.ok && response.status !== 204) {
+    let detail = response.statusText
+    try {
+      const body = (await response.json()) as { detail?: string }
+      detail = body.detail ?? detail
+    } catch {
+      // ignore
+    }
+    throw new ApiError(detail, response.status)
+  }
 }

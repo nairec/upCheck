@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ApiError, fetchMonitor, fetchMonitorHistory } from '../api/client'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ApiError, deleteMonitor, fetchMonitor, fetchMonitorHistory, updateMonitor } from '../api/client'
 import { AggregateHistoryTable } from '../components/AggregateHistoryTable'
 import { CheckHistoryTable } from '../components/CheckHistoryTable'
+import { MonitorFormModal } from '../components/MonitorFormModal'
 import { Sparkline } from '../components/Sparkline'
 import { StatusBadge } from '../components/StatusBadge'
 import type { CheckResult, HistoryPoint, HistoryRange, Monitor } from '../types'
 import { HISTORY_RANGE_DAYS } from '../types'
+import { monitorToInput } from '../utils/monitorForm'
 import { formatRelativeTime } from '../utils/time'
 
 const RANGE_OPTIONS: { value: HistoryRange; label: string }[] = [
@@ -17,6 +19,7 @@ const RANGE_OPTIONS: { value: HistoryRange; label: string }[] = [
 ]
 
 export function MonitorDetailPage() {
+  const navigate = useNavigate()
   const { id } = useParams()
   const monitorId = parseMonitorId(id)
 
@@ -28,6 +31,8 @@ export function MonitorDetailPage() {
   const [loading, setLoading] = useState(true)
   const [monitorError, setMonitorError] = useState<string | null>(null)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const loadMonitor = useCallback(async () => {
     if (monitorId === null) {
@@ -82,6 +87,30 @@ export function MonitorDetailPage() {
     void loadHistory()
   }, [loadHistory])
 
+  async function handleUpdate(values: ReturnType<typeof monitorToInput>) {
+    if (monitorId === null) return
+    const updated = await updateMonitor(monitorId, values)
+    setMonitor(updated)
+    setShowEditModal(false)
+  }
+
+  async function handleDelete() {
+    if (monitorId === null || monitor === null) return
+    const confirmed = window.confirm(
+      `¿Eliminar el monitor "${monitor.name}"? Se borrará también todo su historial.`,
+    )
+    if (!confirmed) return
+
+    setDeleting(true)
+    try {
+      await deleteMonitor(monitorId)
+      navigate('/')
+    } catch (err) {
+      setMonitorError(err instanceof Error ? err.message : 'No se pudo eliminar el monitor')
+      setDeleting(false)
+    }
+  }
+
   if (monitorId === null) {
     return (
       <div className="detail">
@@ -127,6 +156,20 @@ export function MonitorDetailPage() {
                 <p className="detail__target">{monitor.target}</p>
               </div>
               <StatusBadge status={monitor.status} />
+            </div>
+
+            <div className="detail__actions">
+              <button type="button" className="btn btn--ghost" onClick={() => setShowEditModal(true)}>
+                Editar
+              </button>
+              <button
+                type="button"
+                className="btn btn--danger"
+                disabled={deleting}
+                onClick={() => void handleDelete()}
+              >
+                {deleting ? 'Eliminando…' : 'Eliminar'}
+              </button>
             </div>
 
             <dl className="detail__meta">
@@ -203,6 +246,16 @@ export function MonitorDetailPage() {
             )}
           </section>
         </>
+      )}
+
+      {monitor && showEditModal && (
+        <MonitorFormModal
+          title="Editar monitor"
+          submitLabel="Guardar cambios"
+          initial={monitorToInput(monitor)}
+          onSubmit={handleUpdate}
+          onClose={() => setShowEditModal(false)}
+        />
       )}
     </div>
   )

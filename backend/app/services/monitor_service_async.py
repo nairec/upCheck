@@ -13,7 +13,8 @@ from app.history import (
 from app.models import CheckResult, CheckResultDaily, CheckResultHourly, Monitor, MonitorStatus
 from app.schemas.check_result import CheckResultBrief, CheckResultPage, CheckResultRead
 from app.schemas.history import HistoryPoint, MonitorHistoryResponse
-from app.schemas.monitor import DashboardStats, MonitorCreate, MonitorListItem, MonitorRead, MonitorSummary
+from app.schemas.monitor import DashboardStats, MonitorCreate, MonitorListItem, MonitorRead, MonitorSummary, MonitorUpdate
+from app.schemas.monitor_validation import validate_monitor_target
 
 
 def _to_read(monitor: Monitor) -> MonitorRead:
@@ -56,6 +57,39 @@ async def create_monitor(session: AsyncSession, payload: MonitorCreate) -> Monit
   await session.commit()
   await session.refresh(monitor)
   return _to_read(monitor)
+
+
+async def update_monitor(
+  session: AsyncSession, monitor_id: int, payload: MonitorUpdate
+) -> MonitorRead | None:
+  monitor = await session.get(Monitor, monitor_id)
+  if monitor is None:
+    return None
+
+  updates = payload.model_dump(exclude_unset=True)
+  if not updates:
+    return _to_read(monitor)
+
+  effective_type = updates.get("type", monitor.type)
+  if "target" in updates or "type" in updates:
+    target = updates.get("target", monitor.target)
+    updates["target"] = validate_monitor_target(effective_type, target)
+
+  for field, value in updates.items():
+    setattr(monitor, field, value)
+
+  await session.commit()
+  await session.refresh(monitor)
+  return _to_read(monitor)
+
+
+async def delete_monitor(session: AsyncSession, monitor_id: int) -> bool:
+  monitor = await session.get(Monitor, monitor_id)
+  if monitor is None:
+    return False
+  await session.delete(monitor)
+  await session.commit()
+  return True
 
 
 async def list_check_results(

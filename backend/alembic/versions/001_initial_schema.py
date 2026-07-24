@@ -50,40 +50,6 @@ def upgrade() -> None:
   op.create_index("ix_check_results_checked_at", "check_results", ["checked_at"])
   op.create_index("ix_check_results_monitor_id", "check_results", ["monitor_id"])
 
-  monitors = sa.table(
-    "monitors",
-    sa.column("name", sa.String),
-    sa.column("type", sa.String),
-    sa.column("target", sa.String),
-    sa.column("interval_seconds", sa.Integer),
-    sa.column("timeout_seconds", sa.Integer),
-    sa.column("enabled", sa.Boolean),
-    sa.column("status", sa.String),
-  )
-  op.bulk_insert(
-    monitors,
-    [
-      {
-        "name": "API Gateway",
-        "type": "http",
-        "target": "https://httpbin.org/status/200",
-        "interval_seconds": 60,
-        "timeout_seconds": 10,
-        "enabled": True,
-        "status": "unknown",
-      },
-      {
-        "name": "Example TCP",
-        "type": "tcp",
-        "target": "httpbin.org:443",
-        "interval_seconds": 120,
-        "timeout_seconds": 5,
-        "enabled": True,
-        "status": "unknown",
-      },
-    ],
-  )
-
 
 def downgrade() -> None:
   op.drop_index("ix_check_results_monitor_id", table_name="check_results")
