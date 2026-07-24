@@ -7,13 +7,12 @@ interface SidebarProps {
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', path: '/', soon: false },
+  { id: 'alerts', label: 'Alertas', path: '/alerts', soon: false },
   { id: 'incidents', label: 'Incidentes', path: '#', soon: true },
-  { id: 'alerts', label: 'Alertas', path: '#', soon: true },
 ]
 
 export function Sidebar({ monitorCount }: SidebarProps) {
   const location = useLocation()
-  const onDashboard = location.pathname === '/'
 
   return (
     <aside className="sidebar" aria-label="Navegación principal">
@@ -29,7 +28,10 @@ export function Sidebar({ monitorCount }: SidebarProps) {
 
       <nav className="sidebar__nav">
         {NAV_ITEMS.map((item) => {
-          const isActive = item.path === '/' ? onDashboard : location.pathname.startsWith(item.path)
+          const isActive =
+            item.path === '/'
+              ? location.pathname === '/'
+              : item.path !== '#' && location.pathname.startsWith(item.path)
           const className = `sidebar__link${isActive ? ' sidebar__link--active' : ''}${item.soon ? ' sidebar__link--soon' : ''}`
 
           if (item.soon) {

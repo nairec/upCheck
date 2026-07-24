@@ -1,4 +1,12 @@
-import type { CheckResultPage, DashboardStats, Monitor, MonitorHistoryResponse } from '../types'
+import type {
+  AlertRecipient,
+  AlertSettings,
+  AlertSettingsUpdate,
+  CheckResultPage,
+  DashboardStats,
+  Monitor,
+  MonitorHistoryResponse,
+} from '../types'
 import type { MonitorInput } from '../utils/monitorForm'
 
 const API_BASE = '/api/v1'
@@ -101,6 +109,52 @@ export async function deleteMonitor(id: number): Promise<void> {
     throw new ApiError('Invalid monitor id', 400)
   }
   const response = await fetch(`${API_BASE}/monitors/${id}`, { method: 'DELETE' })
+  if (!response.ok && response.status !== 204) {
+    let detail = response.statusText
+    try {
+      const body = (await response.json()) as { detail?: string }
+      detail = body.detail ?? detail
+    } catch {
+      // ignore
+    }
+    throw new ApiError(detail, response.status)
+  }
+}
+
+export function fetchAlertSettings(): Promise<AlertSettings> {
+  return request<AlertSettings>('/alerts/settings')
+}
+
+export function updateAlertSettings(payload: AlertSettingsUpdate): Promise<AlertSettings> {
+  return request<AlertSettings>('/alerts/settings', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function fetchAlertRecipients(): Promise<AlertRecipient[]> {
+  return request<AlertRecipient[]>('/alerts/recipients')
+}
+
+export function createAlertRecipient(email: string): Promise<AlertRecipient> {
+  return request<AlertRecipient>('/alerts/recipients', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, enabled: true }),
+  })
+}
+
+export function updateAlertRecipient(id: number, enabled: boolean): Promise<AlertRecipient> {
+  return request<AlertRecipient>(`/alerts/recipients/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  })
+}
+
+export async function deleteAlertRecipient(id: number): Promise<void> {
+  const response = await fetch(`${API_BASE}/alerts/recipients/${id}`, { method: 'DELETE' })
   if (!response.ok && response.status !== 204) {
     let detail = response.statusText
     try {

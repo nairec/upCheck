@@ -39,10 +39,17 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/checks/runner.py` | Dispatcher de checks por tipo; implementados HTTP y TCP. |
 | `app/checks/http.py` | Check HTTP con `httpx` (status code, latencia, errores). |
 | `app/worker/celery_app.py` | Celery + beat: dispatch cada 30s y retención diaria a las 03:00 UTC. |
-| `app/worker/tasks.py` | `dispatch_due_checks`, `run_monitor_check`, `run_retention_maintenance`. |
+| `app/worker/tasks.py` | `dispatch_due_checks`, `run_monitor_check`, `run_retention_maintenance`, `send_down_alert_email`. |
+| `app/alerts.py` | Constantes de alertas (`DOWN_ALERT_COOLDOWN_MINUTES=15`). |
+| `app/models/alert_settings.py` | Preferencias de cuenta: cooldown, cuándo avisar (singleton id=1). |
+| `src/pages/AlertsPage.tsx` | Ajustes de alertas y CRUD de destinatarios. |
+| `app/services/email_service.py` | Envío SMTP (`smtplib`); omitido si alerts deshabilitadas o sin SMTP. |
+| `app/services/alert_service.py` | UP→DOWN, cooldown, encola envío; reset al recuperar UP. |
+| `app/services/alert_recipient_service_async.py` | CRUD async de destinatarios. |
+| `app/api/routes/alerts.py` | `GET /alerts/settings`, CRUD `/alerts/recipients`. |
+| `backend/.env.example` | Plantilla SMTP y `ALERTS_ENABLED`. |
 | `app/core/database.py` | Engine async + `get_db()` para FastAPI. |
 | `app/core/sync_database.py` | Engine sync para workers Celery. |
-| `app/api/routes/monitors.py` | CRUD de monitores: `GET/POST/PATCH/DELETE`, `/results`, `/history`. |
 | `alembic/` | `005_add_alert_recipients.py` añade destinatarios y `monitors.last_down_alert_at`. |
 | `entrypoint.sh` | Ejecuta `alembic upgrade head` antes de arrancar uvicorn. |
 

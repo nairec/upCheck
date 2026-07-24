@@ -5,10 +5,11 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.alerts import DOWN_ALERT_COOLDOWN_MINUTES
+from app.alerts import DEFAULT_DOWN_ALERT_COOLDOWN_MINUTES
 from app.config import Settings
 from app.core.database import Base
-from app.models import AlertRecipient, CheckResult, Monitor, MonitorStatus, MonitorType
+from app.models import AlertRecipient, AlertSettings, CheckResult, Monitor, MonitorStatus, MonitorType
+from app.models.alert_settings import ACCOUNT_SETTINGS_ID
 from app.services import alert_service
 from app.services.email_service import EmailPayload, send_email
 
@@ -71,6 +72,14 @@ def sync_session():
     )
     session.add(monitor)
     session.add(AlertRecipient(email="ops@example.com", enabled=True))
+    session.add(
+      AlertSettings(
+        id=ACCOUNT_SETTINGS_ID,
+        down_alert_cooldown_minutes=DEFAULT_DOWN_ALERT_COOLDOWN_MINUTES,
+        alert_on_down=True,
+        alert_on_recovery=False,
+      )
+    )
     session.commit()
     yield session, monitor.id
 
@@ -104,12 +113,14 @@ def test_handle_status_change_enqueues_on_up_to_down(sync_session) -> None:
   assert monitor.last_down_alert_at is not None
 
 
-def test_handle_status_change_skips_while_still_down(sync_session) -> None:
+def test_handle_status_change_skips_when_alert_on_down_disabled(sync_session) -> None:
   session, monitor_id = sync_session
+  account = session.get(AlertSettings, ACCOUNT_SETTINGS_ID)
+  assert account is not None
+  account.alert_on_down = False
+  session.commit()
   monitor = session.get(Monitor, monitor_id)
   assert monitor is not None
-  monitor.status = MonitorStatus.DOWN
-  session.commit()
   check = CheckResult(
     monitor_id=monitor_id,
     status=MonitorStatus.DOWN,
@@ -123,7 +134,7 @@ def test_handle_status_change_skips_while_still_down(sync_session) -> None:
     enqueued = alert_service.handle_status_change(
       session,
       monitor=monitor,
-      previous_status=MonitorStatus.DOWN,
+      previous_status=MonitorStatus.UP,
       new_status=MonitorStatus.DOWN,
       check_result=check,
     )
@@ -137,7 +148,7 @@ def test_handle_status_change_respects_cooldown(sync_session) -> None:
   monitor = session.get(Monitor, monitor_id)
   assert monitor is not None
   now = datetime.now(UTC)
-  monitor.last_down_alert_at = now - timedelta(minutes=DOWN_ALERT_COOLDOWN_MINUTES - 1)
+  monitor.last_down_alert_at = now - timedelta(minutes=DEFAULT_DOWN_ALERT_COOLDOWN_MINUTES - 1)
   session.commit()
   check = CheckResult(
     monitor_id=monitor_id,
@@ -162,10 +173,15 @@ def test_handle_status_change_respects_cooldown(sync_session) -> None:
   mock_task.delay.assert_not_called()
 
 
-def test_recovery_clears_down_alert_timestamp(sync_session) -> None:
+def test_recovery_alert_when_enabled(sync_session) -> None:
   session, monitor_id = sync_session
+  account = session.get(AlertSettings, ACCOUNT_SETTINGS_ID)
+  assert account is not None
+  account.alert_on_recovery = True
+  session.commit()
   monitor = session.get(Monitor, monitor_id)
   assert monitor is not None
+  monitor.status = MonitorStatus.DOWN
   monitor.last_down_alert_at = datetime.now(UTC)
   session.commit()
   check = CheckResult(
@@ -176,13 +192,18 @@ def test_recovery_clears_down_alert_timestamp(sync_session) -> None:
   session.add(check)
   session.commit()
 
-  alert_service.handle_status_change(
-    session,
-    monitor=monitor,
-    previous_status=MonitorStatus.DOWN,
-    new_status=MonitorStatus.UP,
-    check_result=check,
-  )
+  with patch("app.worker.tasks.send_recovery_alert_email") as mock_task:
+    mock_task.delay = MagicMock()
+    enqueued = alert_service.handle_status_change(
+      session,
+      monitor=monitor,
+      previous_status=MonitorStatus.DOWN,
+      new_status=MonitorStatus.UP,
+      check_result=check,
+    )
+
+  assert enqueued is True
+  mock_task.delay.assert_called_once_with(monitor_id, check.id)
   session.refresh(monitor)
   assert monitor.last_down_alert_at is None
 

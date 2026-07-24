@@ -65,3 +65,14 @@ def send_down_alert_email(self, monitor_id: int, check_result_id: int) -> str:
   if sent:
     return f"down alert sent for monitor {monitor_id}"
   return f"down alert skipped for monitor {monitor_id}"
+
+
+@celery_app.task(name="app.worker.tasks.send_recovery_alert_email", bind=True, max_retries=2)
+def send_recovery_alert_email(self, monitor_id: int, check_result_id: int) -> str:
+  with SyncSessionLocal() as session:
+    from app.services import alert_service
+
+    sent = alert_service.deliver_recovery_alert(session, monitor_id, check_result_id)
+  if sent:
+    return f"recovery alert sent for monitor {monitor_id}"
+  return f"recovery alert skipped for monitor {monitor_id}"

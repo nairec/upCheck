@@ -10,7 +10,25 @@ async def test_alert_settings_defaults(client: AsyncClient) -> None:
   assert body["alerts_enabled"] is False
   assert body["smtp_configured"] is False
   assert body["down_alert_cooldown_minutes"] == 15
+  assert body["alert_on_down"] is True
+  assert body["alert_on_recovery"] is False
   assert body["recipient_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_update_alert_settings(client: AsyncClient) -> None:
+  response = await client.patch(
+    "/api/v1/alerts/settings",
+    json={
+      "down_alert_cooldown_minutes": 30,
+      "alert_on_down": True,
+      "alert_on_recovery": True,
+    },
+  )
+  assert response.status_code == 200
+  body = response.json()
+  assert body["down_alert_cooldown_minutes"] == 30
+  assert body["alert_on_recovery"] is True
 
 
 @pytest.mark.asyncio

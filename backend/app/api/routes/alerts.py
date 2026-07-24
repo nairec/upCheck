@@ -9,6 +9,7 @@ from app.schemas.alert_recipient import (
   AlertRecipientRead,
   AlertRecipientUpdate,
   AlertSettingsRead,
+  AlertSettingsUpdate,
 )
 from app.services import alert_recipient_service_async as alert_service
 
@@ -20,6 +21,13 @@ RecipientIdPath = Annotated[int, Path(ge=1, le=2_147_483_647, description="Recip
 @router.get("/settings", response_model=AlertSettingsRead)
 async def get_alert_settings(db: AsyncSession = Depends(get_db)) -> AlertSettingsRead:
   return await alert_service.get_alert_settings(db)
+
+
+@router.patch("/settings", response_model=AlertSettingsRead)
+async def update_alert_settings(
+  payload: AlertSettingsUpdate, db: AsyncSession = Depends(get_db)
+) -> AlertSettingsRead:
+  return await alert_service.update_alert_settings(db, payload)
 
 
 @router.get("/recipients", response_model=list[AlertRecipientRead])

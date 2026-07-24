@@ -85,3 +85,25 @@ export const HISTORY_RANGE_DAYS: Record<HistoryRange, number> = {
   '30d': 30,
   '90d': 90,
 }
+
+export interface AlertRecipient {
+  id: number
+  email: string
+  enabled: boolean
+  created_at: string
+}
+
+export interface AlertSettings {
+  alerts_enabled: boolean
+  smtp_configured: boolean
+  down_alert_cooldown_minutes: number
+  alert_on_down: boolean
+  alert_on_recovery: boolean
+  recipient_count: number
+}
+
+export interface AlertSettingsUpdate {
+  down_alert_cooldown_minutes?: number
+  alert_on_down?: boolean
+  alert_on_recovery?: boolean
+}

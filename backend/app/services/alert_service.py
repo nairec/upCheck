@@ -6,9 +6,10 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.alerts import DOWN_ALERT_COOLDOWN_MINUTES
 from app.config import get_settings
 from app.models import AlertRecipient, CheckResult, Monitor, MonitorStatus
+from app.models.alert_settings import AlertSettings
+from app.services.alert_settings_service import get_account_alert_settings
 from app.services.email_service import EmailPayload, send_email
 
 logger = logging.getLogger(__name__)
@@ -36,19 +37,29 @@ def handle_status_change(
   check_result: CheckResult,
   now: datetime | None = None,
 ) -> bool:
-  """React to a completed check. Returns True if a down alert was enqueued."""
+  """React to a completed check. Returns True if any alert email was enqueued."""
   current_time = _ensure_utc(now or datetime.now(UTC))
+  account = get_account_alert_settings(session)
+  enqueued = False
 
   if new_status == MonitorStatus.UP:
     if monitor.last_down_alert_at is not None:
       monitor.last_down_alert_at = None
       session.commit()
-    return False
+    if previous_status == MonitorStatus.DOWN and account.alert_on_recovery:
+      from app.worker.tasks import send_recovery_alert_email
+
+      send_recovery_alert_email.delay(monitor.id, check_result.id)
+      enqueued = True
+    return enqueued
 
   if not (previous_status == MonitorStatus.UP and new_status == MonitorStatus.DOWN):
     return False
 
-  if not _cooldown_elapsed(monitor, current_time):
+  if not account.alert_on_down:
+    return False
+
+  if not _cooldown_elapsed(monitor, current_time, account):
     logger.info("Down alert cooldown active for monitor %s — skipping", monitor.id)
     return False
 
@@ -60,10 +71,10 @@ def handle_status_change(
   return True
 
 
-def _cooldown_elapsed(monitor: Monitor, now: datetime) -> bool:
+def _cooldown_elapsed(monitor: Monitor, now: datetime, account: AlertSettings) -> bool:
   if monitor.last_down_alert_at is None:
     return True
-  cooldown = timedelta(minutes=DOWN_ALERT_COOLDOWN_MINUTES)
+  cooldown = timedelta(minutes=account.down_alert_cooldown_minutes)
   return _ensure_utc(monitor.last_down_alert_at) + cooldown <= now
 
 
@@ -110,8 +121,54 @@ def build_down_alert_email(
   )
 
 
+def build_recovery_alert_email(
+  session: Session, monitor_id: int, check_result_id: int
+) -> EmailPayload | None:
+  monitor = session.get(Monitor, monitor_id)
+  check_result = session.get(CheckResult, check_result_id)
+  if monitor is None or check_result is None:
+    return None
+
+  recipients = get_enabled_recipient_emails(session)
+  if not recipients:
+    return None
+
+  settings = get_settings()
+  checked_at = _ensure_utc(check_result.checked_at).strftime("%Y-%m-%d %H:%M:%S UTC")
+  latency_line = (
+    f"{check_result.response_time_ms:.0f} ms" if check_result.response_time_ms is not None else "—"
+  )
+
+  detail_url = ""
+  if settings.app_public_url:
+    base = settings.app_public_url.rstrip("/")
+    detail_url = f"\nVer monitor: {base}/monitors/{monitor.id}\n"
+
+  body = (
+    f"El monitor «{monitor.name}» se ha recuperado (UP).\n\n"
+    f"Target: {monitor.target}\n"
+    f"Hora del check: {checked_at}\n"
+    f"Latencia: {latency_line}\n"
+    f"{detail_url}\n"
+    "— upCheck"
+  )
+
+  return EmailPayload(
+    to=recipients,
+    subject=f"[upCheck] RECUPERADO — {monitor.name}",
+    body=body,
+  )
+
+
 def deliver_down_alert(session: Session, monitor_id: int, check_result_id: int) -> bool:
   payload = build_down_alert_email(session, monitor_id, check_result_id)
+  if payload is None:
+    return False
+  return send_email(payload)
+
+
+def deliver_recovery_alert(session: Session, monitor_id: int, check_result_id: int) -> bool:
+  payload = build_recovery_alert_email(session, monitor_id, check_result_id)
   if payload is None:
     return False
   return send_email(payload)

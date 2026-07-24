@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { Sidebar } from './components/Sidebar'
 import { DashboardPage } from './pages/DashboardPage'
+import { AlertsPage } from './pages/AlertsPage'
 import { MonitorDetailPage } from './pages/MonitorDetailPage'
 import './App.css'
 
@@ -24,6 +25,7 @@ export default function App() {
       <Routes>
         <Route element={<ShellLayout />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/monitors/:id" element={<MonitorDetailPage />} />
         </Route>
       </Routes>

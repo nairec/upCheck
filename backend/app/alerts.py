@@ -1,3 +1,3 @@
-"""Alert policy constants — will become user settings later."""
+"""Default alert policy values for new accounts."""
 
-DOWN_ALERT_COOLDOWN_MINUTES = 15
+DEFAULT_DOWN_ALERT_COOLDOWN_MINUTES = 15
