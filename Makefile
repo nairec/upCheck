@@ -1,7 +1,7 @@
 .PHONY: dev backend frontend worker beat test lint build up down install
 
 backend:
-	cd backend && uvicorn app.main:app --reload --port 8000
+	cd backend && python3 -m alembic upgrade head && python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 frontend:
 	cd frontend && npm run dev

@@ -1,5 +1,8 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,9 +10,20 @@ from app.api.router import api_router
 from app.config import get_settings
 
 
+def _run_migrations() -> None:
+  settings = get_settings()
+  backend_dir = Path(__file__).resolve().parent.parent
+  alembic_cfg = Config(str(backend_dir / "alembic.ini"))
+  sync_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+  alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+  command.upgrade(alembic_cfg, "head")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-  # Database init and scheduler wiring will live here in later phases.
+  settings = get_settings()
+  if settings.run_migrations_on_startup:
+    _run_migrations()
   yield
 
 

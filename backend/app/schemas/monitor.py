@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.models.enums import MonitorStatus, MonitorType
+from app.schemas.check_result import CheckResultBrief
 
 
 class MonitorBase(BaseModel):
@@ -25,6 +26,10 @@ class MonitorRead(MonitorBase):
   response_time_ms: float | None = None
 
   model_config = {"from_attributes": True}
+
+
+class MonitorListItem(MonitorRead):
+  recent_checks: list[CheckResultBrief] = Field(default_factory=list)
 
 
 class MonitorSummary(BaseModel):

@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 
 from app.config import get_settings
 
@@ -21,6 +22,10 @@ celery_app.conf.update(
     "dispatch-due-checks": {
       "task": "app.worker.tasks.dispatch_due_checks",
       "schedule": settings.dispatch_interval_seconds,
+    },
+    "retention-maintenance": {
+      "task": "app.worker.tasks.run_retention_maintenance",
+      "schedule": crontab(hour=3, minute=0),
     },
   },
 )

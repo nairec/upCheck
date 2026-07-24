@@ -1,7 +1,8 @@
 import logging
+from dataclasses import asdict
 
 from app.core.sync_database import SyncSessionLocal
-from app.services import monitor_service
+from app.services import monitor_service, retention_service
 from app.worker.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -45,3 +46,11 @@ def run_monitor_check(self, monitor_id: int) -> str:
           session, monitor_id, expected_lease_until=claimed_lease
         )
       raise
+
+
+@celery_app.task(name="app.worker.tasks.run_retention_maintenance")
+def run_retention_maintenance() -> dict[str, int]:
+  """Roll up expiring tiers and purge old data. Idempotent — safe to retry."""
+  with SyncSessionLocal() as session:
+    stats = retention_service.run_retention_maintenance(session)
+  return asdict(stats)

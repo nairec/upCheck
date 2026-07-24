@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.database import Base
 from app.models import CheckResult, Monitor, MonitorStatus, MonitorType
-from app.worker.tasks import dispatch_due_checks, run_monitor_check
+from app.worker.tasks import dispatch_due_checks, run_monitor_check, run_retention_maintenance
 
 
 def test_dispatch_due_checks_reads_ids_before_session_closes() -> None:
@@ -80,3 +80,20 @@ def test_run_monitor_check_does_not_persist_orphaned_result_on_execute_failure()
     monitor = session.get(Monitor, monitor_id)
     assert monitor is not None
     assert monitor.lease_until is None
+
+
+def test_run_retention_maintenance_returns_stats() -> None:
+  engine = create_engine("sqlite:///:memory:")
+  Base.metadata.create_all(engine)
+  Session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+  with patch("app.worker.tasks.SyncSessionLocal", Session):
+    result = run_retention_maintenance()
+
+  assert result == {
+    "hourly_buckets_upserted": 0,
+    "daily_buckets_upserted": 0,
+    "raw_deleted": 0,
+    "hourly_deleted": 0,
+    "daily_deleted": 0,
+  }

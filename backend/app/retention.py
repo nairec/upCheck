@@ -1,0 +1,12 @@
+"""Retention policy constants — single source of truth (no env vars required)."""
+
+RAW_RETENTION_DAYS = 30
+HOURLY_RETENTION_DAYS = 90
+DAILY_RETENTION_DAYS = 730
+
+PURGE_BATCH_SIZE = 5_000
+
+# Max query windows exposed via API (must be <= retention)
+MAX_RAW_HISTORY_DAYS = RAW_RETENTION_DAYS
+MAX_HOURLY_HISTORY_DAYS = HOURLY_RETENTION_DAYS
+MAX_DAILY_HISTORY_DAYS = DAILY_RETENTION_DAYS

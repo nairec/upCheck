@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'react-router-dom'
 import type { DashboardStats } from '../types'
 
 interface SidebarProps {
@@ -5,16 +6,18 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', active: true },
-  { id: 'monitors', label: 'Monitores', active: false },
-  { id: 'incidents', label: 'Incidentes', active: false, soon: true },
-  { id: 'alerts', label: 'Alertas', active: false, soon: true },
+  { id: 'dashboard', label: 'Dashboard', path: '/', soon: false },
+  { id: 'incidents', label: 'Incidentes', path: '#', soon: true },
+  { id: 'alerts', label: 'Alertas', path: '#', soon: true },
 ]
 
 export function Sidebar({ monitorCount }: SidebarProps) {
+  const location = useLocation()
+  const onDashboard = location.pathname === '/'
+
   return (
     <aside className="sidebar" aria-label="Navegación principal">
-      <div className="sidebar__brand">
+      <Link to="/" className="sidebar__brand">
         <span className="sidebar__mark" aria-hidden="true">
           ◈
         </span>
@@ -22,19 +25,33 @@ export function Sidebar({ monitorCount }: SidebarProps) {
           <p className="sidebar__title">upCheck</p>
           <p className="sidebar__tag">control room</p>
         </div>
-      </div>
+      </Link>
 
       <nav className="sidebar__nav">
-        {NAV_ITEMS.map((item) => (
-          <span
-            key={item.id}
-            className={`sidebar__link${item.active ? ' sidebar__link--active' : ''}${item.soon ? ' sidebar__link--soon' : ''}`}
-            aria-current={item.active ? 'page' : undefined}
-          >
-            <span className="sidebar__link-label">{item.label}</span>
-            {item.soon && <span className="sidebar__soon">pronto</span>}
-          </span>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const isActive = item.path === '/' ? onDashboard : location.pathname.startsWith(item.path)
+          const className = `sidebar__link${isActive ? ' sidebar__link--active' : ''}${item.soon ? ' sidebar__link--soon' : ''}`
+
+          if (item.soon) {
+            return (
+              <span key={item.id} className={className}>
+                <span className="sidebar__link-label">{item.label}</span>
+                <span className="sidebar__soon">pronto</span>
+              </span>
+            )
+          }
+
+          return (
+            <Link
+              key={item.id}
+              to={item.path}
+              className={className}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <span className="sidebar__link-label">{item.label}</span>
+            </Link>
+          )
+        })}
       </nav>
 
       <div className="sidebar__footer">
