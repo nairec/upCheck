@@ -18,6 +18,12 @@ class HistoryGranularity(str, Enum):
   DAILY = "daily"
 
 
+class ResolvedHistoryGranularity(str, Enum):
+  RAW = "raw"
+  HOURLY = "hourly"
+  DAILY = "daily"
+
+
 def resolve_granularity(days: int, requested: HistoryGranularity) -> HistoryGranularity:
   """Pick the best tier for a time window (auto favors fewer points for long ranges)."""
   if requested != HistoryGranularity.AUTO:

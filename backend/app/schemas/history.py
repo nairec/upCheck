@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.history import HistoryGranularity
+from app.history import ResolvedHistoryGranularity
 from app.models.enums import MonitorStatus
 
 
@@ -22,7 +22,7 @@ class HistoryPoint(BaseModel):
 
 
 class MonitorHistoryResponse(BaseModel):
-  granularity: HistoryGranularity
+  granularity: ResolvedHistoryGranularity
   days: int
   points: list[HistoryPoint]
   total: int = Field(description="Total matching buckets/checks in the requested window")

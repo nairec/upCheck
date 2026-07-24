@@ -99,7 +99,9 @@ export function MonitorDetailPage() {
   const sparklinePoints = historyPoints.map(historyPointToSparkline)
   const rawChecks =
     historyGranularity === 'raw' && monitor
-      ? historyPoints.map((point) => historyPointToCheckResult(point, monitor.id))
+      ? [...historyPoints]
+          .reverse()
+          .map((point) => historyPointToCheckResult(point, monitor.id))
       : []
 
   return (

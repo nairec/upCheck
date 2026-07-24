@@ -215,7 +215,6 @@ def rollup_hourly_to_daily(session: Session, *, before: datetime) -> int:
       if weighted_latency
       else None
     )
-    down_checks = total - up
     downtime_minutes = sum(
       max(0, h.total_checks - h.up_checks) * 60 // max(h.total_checks, 1) for h in hourlies
     )

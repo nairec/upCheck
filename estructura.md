@@ -34,13 +34,11 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/services/retention_service.py` | Rollup raw→hourly→daily y purge por lotes; idempotente y seguro de reintentar. |
 | `app/services/monitor_service_async.py` | `get_monitor_history` consulta raw/hourly/daily según ventana temporal. |
 | `app/schemas/history.py` | `HistoryPoint`, `MonitorHistoryResponse` para el endpoint unificado. |
-| `app/api/routes/monitors.py` | `GET /monitors/{id}/history?days&granularity` además de `/results`. |
-| `app/worker/tasks.py` | Tarea `run_retention_maintenance` (rollup + purge diario). |
-| `app/worker/celery_app.py` | Beat schedule: dispatch cada 30s + retención a las 03:00 UTC. |
+| `app/api/routes/monitors.py` | `GET /monitors/{id}`, `/results`, `/history`; validación de IDs y paginación. |
 | `app/checks/runner.py` | Dispatcher de checks por tipo; implementados HTTP y TCP. |
 | `app/checks/http.py` | Check HTTP con `httpx` (status code, latencia, errores). |
-| `app/worker/celery_app.py` | Configuración de Celery + beat schedule (`dispatch_interval_seconds`). |
-| `app/worker/tasks.py` | Tareas `dispatch_due_checks` y `run_monitor_check`. |
+| `app/worker/celery_app.py` | Celery + beat: dispatch cada 30s y retención diaria a las 03:00 UTC. |
+| `app/worker/tasks.py` | `dispatch_due_checks`, `run_monitor_check`, `run_retention_maintenance`. |
 | `app/core/database.py` | Engine async + `get_db()` para FastAPI. |
 | `app/core/sync_database.py` | Engine sync para workers Celery. |
 | `alembic/` | Migraciones; `003_add_check_aggregates.py` crea tablas hourly/daily. |
