@@ -19,6 +19,16 @@
 - [x] CRUD completo desde la UI (crear, editar, eliminar)
 - [x] Alertas por email al cambiar UP → DOWN (ajustes + destinatarios en UI)
 
+### Alertas — evolución prevista (post-MVP)
+
+Hoy las alertas son **globales por cuenta**: mismos tipos de aviso y mismos monitores para todos los destinatarios activos. En el futuro debería poder configurarse:
+
+- **Formato de los avisos** — plantillas o canales (asunto, cuerpo, HTML/texto, resumen vs. detalle).
+- **Tipos de aviso por destinatario** — p. ej. uno recibe solo caídas, otro también recuperaciones o resúmenes.
+- **Alcance por monitor** — filtrar qué monitores disparan aviso a cada destinatario (p. ej. avisar a `ops@` solo del monitor «API producción»).
+
+Implicación técnica: pasar de `alert_recipients` planos a reglas de suscripción (destinatario × monitor × tipo de evento), evaluadas en `alert_service` antes de encolar el envío.
+
 ## Fase 2 — Diferenciadores
 
 - [ ] Checks de bases de datos: PostgreSQL, MySQL, Redis, MongoDB
@@ -26,6 +36,7 @@
 - [ ] Sistema de incidentes (agrupar fallos consecutivos)
 - [ ] Status page pública
 - [ ] Webhooks / Slack / Telegram
+- [ ] Personalización de alertas: formato, tipos por destinatario y filtros por monitor
 - [ ] Aviso de expiración de certificados SSL
 - [ ] Ventanas de mantenimiento
 
