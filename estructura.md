@@ -61,6 +61,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `src/components/MonitorFormModal.tsx` | Modal con el formulario de monitor. |
 | `src/pages/DashboardPage.tsx` | Panel principal con botón «Añadir monitor» y listado de cards. |
 | `src/pages/MonitorDetailPage.tsx` | Detalle con historial, editar y eliminar monitor. |
+| `src/components/AggregateHistoryTable.tsx` | Tabla de buckets hourly/daily (uptime, latencia, downtime). |
 | `src/components/CheckHistoryTable.tsx` | Tabla de checks individuales (granularidad raw). |
 
 ## Raíz
