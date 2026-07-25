@@ -124,6 +124,19 @@ export function MonitorForm({ initial, submitLabel, onSubmit, onCancel }: Monito
         <span>Monitor activo</span>
       </label>
 
+      <label className="monitor-form__checkbox">
+        <input
+          type="checkbox"
+          checked={values.public_on_status_page}
+          onChange={(event) =>
+            setValues((prev) => ({ ...prev, public_on_status_page: event.target.checked }))
+          }
+        />
+        <span>
+          <strong>Visible en la status page</strong> — aparece en la página pública de estado
+        </span>
+      </label>
+
       {error && (
         <p className="notice notice--error" role="alert">
           <span className="notice__prefix">ERR</span>

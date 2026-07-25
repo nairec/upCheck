@@ -7,6 +7,7 @@ export interface MonitorInput {
   interval_seconds: number
   timeout_seconds: number
   enabled: boolean
+  public_on_status_page: boolean
 }
 
 export const SUPPORTED_MONITOR_TYPES: MonitorType[] = ['http', 'tcp']
@@ -26,6 +27,7 @@ export const DEFAULT_MONITOR_INPUT: MonitorInput = {
   interval_seconds: 60,
   timeout_seconds: 10,
   enabled: true,
+  public_on_status_page: false,
 }
 
 export function monitorToInput(monitor: Monitor): MonitorInput {
@@ -36,6 +38,7 @@ export function monitorToInput(monitor: Monitor): MonitorInput {
     interval_seconds: monitor.interval_seconds,
     timeout_seconds: monitor.timeout_seconds,
     enabled: monitor.enabled,
+    public_on_status_page: monitor.public_on_status_page,
   }
 }
 

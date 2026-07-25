@@ -14,6 +14,7 @@ class MonitorBase(BaseModel):
   interval_seconds: int = Field(default=60, ge=30, le=3600)
   timeout_seconds: int = Field(default=10, ge=1, le=300)
   enabled: bool = True
+  public_on_status_page: bool = True
 
   @field_validator("type")
   @classmethod
@@ -42,6 +43,7 @@ class MonitorUpdate(BaseModel):
   interval_seconds: int | None = Field(default=None, ge=30, le=3600)
   timeout_seconds: int | None = Field(default=None, ge=1, le=300)
   enabled: bool | None = None
+  public_on_status_page: bool | None = None
 
   @field_validator("type")
   @classmethod

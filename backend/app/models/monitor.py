@@ -27,6 +27,7 @@ class Monitor(Base):
   interval_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
   timeout_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
   enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+  public_on_status_page: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
   status: Mapped[MonitorStatus] = mapped_column(
     Enum(MonitorStatus, values_callable=lambda obj: [e.value for e in obj], native_enum=False),
     nullable=False,

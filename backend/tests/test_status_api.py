@@ -4,8 +4,9 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import CheckResult, Monitor
-from app.models.enums import IncidentStatus, MonitorStatus, MonitorType
+from app.models import AlertSettings, CheckResult, Monitor
+from app.models.alert_settings import ACCOUNT_SETTINGS_ID
+from app.models.enums import MonitorStatus, MonitorType
 
 
 async def _seed_status_data(db_session: AsyncSession) -> Monitor:
@@ -16,9 +17,20 @@ async def _seed_status_data(db_session: AsyncSession) -> Monitor:
     interval_seconds=60,
     timeout_seconds=10,
     enabled=True,
+    public_on_status_page=True,
     status=MonitorStatus.DOWN,
     response_time_ms=142.5,
     last_checked_at=datetime.now(UTC),
+  )
+  private = Monitor(
+    name="API privada",
+    type=MonitorType.HTTP,
+    target="https://secret.internal/private",
+    interval_seconds=60,
+    timeout_seconds=10,
+    enabled=True,
+    public_on_status_page=False,
+    status=MonitorStatus.UP,
   )
   disabled = Monitor(
     name="Interno",
@@ -29,7 +41,7 @@ async def _seed_status_data(db_session: AsyncSession) -> Monitor:
     enabled=False,
     status=MonitorStatus.UP,
   )
-  db_session.add_all([monitor, disabled])
+  db_session.add_all([monitor, private, disabled])
   await db_session.commit()
   await db_session.refresh(monitor)
 
@@ -92,3 +104,33 @@ async def test_public_status_omits_sensitive_fields(
 
   payload = response.text
   assert "secret.internal" not in payload
+
+
+@pytest.mark.asyncio
+async def test_public_status_excludes_private_monitors(
+  client: AsyncClient, db_session: AsyncSession
+) -> None:
+  await _seed_status_data(db_session)
+
+  response = await client.get("/api/v1/status")
+  assert response.status_code == 200
+  names = [service["name"] for service in response.json()["services"]]
+  assert "API privada" not in names
+
+
+@pytest.mark.asyncio
+async def test_public_status_returns_404_when_page_private(
+  client: AsyncClient, db_session: AsyncSession
+) -> None:
+  settings = AlertSettings(
+    id=ACCOUNT_SETTINGS_ID,
+    down_alert_cooldown_minutes=15,
+    alert_on_down=True,
+    alert_on_recovery=False,
+    status_page_public=False,
+  )
+  db_session.add(settings)
+  await db_session.commit()
+
+  response = await client.get("/api/v1/status")
+  assert response.status_code == 404

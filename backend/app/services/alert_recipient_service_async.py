@@ -22,11 +22,17 @@ async def _get_or_create_settings(session: AsyncSession) -> AlertSettings:
       down_alert_cooldown_minutes=DEFAULT_DOWN_ALERT_COOLDOWN_MINUTES,
       alert_on_down=True,
       alert_on_recovery=False,
+      status_page_public=True,
     )
     session.add(row)
     await session.commit()
     await session.refresh(row)
   return row
+
+
+async def is_status_page_public(session: AsyncSession) -> bool:
+  account = await _get_or_create_settings(session)
+  return account.status_page_public
 
 
 async def list_recipients(session: AsyncSession) -> list[AlertRecipientRead]:
@@ -75,6 +81,7 @@ async def get_alert_settings(session: AsyncSession) -> AlertSettingsRead:
     down_alert_cooldown_minutes=account.down_alert_cooldown_minutes,
     alert_on_down=account.alert_on_down,
     alert_on_recovery=account.alert_on_recovery,
+    status_page_public=account.status_page_public,
     recipient_count=count or 0,
   )
 

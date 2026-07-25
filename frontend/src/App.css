@@ -1578,6 +1578,30 @@
   color: var(--text-dim);
 }
 
+.status-page__private {
+  margin: 40px auto;
+  max-width: 28rem;
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  background: var(--surface);
+}
+
+.status-page__private-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.status-page__private-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
 .status-alert {
   display: flex;
   align-items: center;

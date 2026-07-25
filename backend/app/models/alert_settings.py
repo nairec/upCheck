@@ -22,6 +22,7 @@ class AlertSettings(Base):
   )
   alert_on_down: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
   alert_on_recovery: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+  status_page_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
   updated_at: Mapped[datetime] = mapped_column(
     DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
   )

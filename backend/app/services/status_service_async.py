@@ -41,10 +41,17 @@ async def _uptime_by_monitor(session: AsyncSession, since: datetime) -> dict[int
   return uptime
 
 
+def _public_monitor_filter():
+  return (
+    Monitor.enabled.is_(True),
+    Monitor.public_on_status_page.is_(True),
+  )
+
+
 async def get_public_status(session: AsyncSession) -> PublicStatusResponse:
   monitors = (
     await session.scalars(
-      select(Monitor).where(Monitor.enabled.is_(True)).order_by(Monitor.id)
+      select(Monitor).where(*_public_monitor_filter()).order_by(Monitor.id)
     )
   ).all()
 
@@ -88,6 +95,7 @@ async def get_public_status(session: AsyncSession) -> PublicStatusResponse:
     for monitor in monitors
   ]
 
+  public_monitor_ids = set(monitor_ids)
   incidents = await incident_service.list_incidents(session, status=IncidentStatus.OPEN, days=30)
   open_incidents = [
     PublicStatusIncident(
@@ -99,6 +107,7 @@ async def get_public_status(session: AsyncSession) -> PublicStatusResponse:
       failed_check_count=incident.failed_check_count,
     )
     for incident in incidents
+    if incident.monitor_id in public_monitor_ids
   ]
 
   return PublicStatusResponse(
