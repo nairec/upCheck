@@ -202,11 +202,66 @@
 }
 
 .main__clock-time {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--mono);
   font-size: 20px;
   font-weight: 500;
   color: var(--cream);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.main__clock-sep {
+  display: inline-block;
+  width: 0.45em;
+  text-align: center;
+  color: var(--amber-dim);
+}
+
+.main__clock-digit {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  height: 1.25em;
+  min-width: 0.62em;
+  text-align: center;
+}
+
+.main__clock-digit__layer {
+  display: block;
+  line-height: 1.25em;
+  height: 1.25em;
+}
+
+.main__clock-digit__layer--exit {
+  position: absolute;
+  inset: 0;
+  animation: clock-slide-out 0.3s ease-in forwards;
+}
+
+.main__clock-digit__layer--enter {
+  animation: clock-slide-in 0.3s ease-out forwards;
+}
+
+@keyframes clock-slide-in {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes clock-slide-out {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-100%);
+  }
 }
 
 /* Refresh progress bar */

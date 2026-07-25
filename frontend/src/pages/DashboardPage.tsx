@@ -153,7 +153,65 @@ function Clock() {
     return () => clearInterval(id)
   }, [])
 
-  return <time className="main__clock-time">{time}</time>
+  const now = new Date()
+
+  return (
+    <time
+      className="main__clock-time"
+      dateTime={now.toISOString()}
+      aria-label={`Hora UTC ${time}`}
+    >
+      {time.split('').map((char, index) =>
+        char === ':' ? (
+          <span key={`sep-${index}`} className="main__clock-sep" aria-hidden="true">
+            :
+          </span>
+        ) : (
+          <ClockDigit key={`digit-${index}`} value={char} />
+        ),
+      )}
+    </time>
+  )
+}
+
+function ClockDigit({ value }: { value: string }) {
+  const [current, setCurrent] = useState(value)
+  const [previous, setPrevious] = useState<string | null>(null)
+  const [generation, setGeneration] = useState(0)
+
+  useEffect(() => {
+    if (value === current) return
+    setPrevious(current)
+    setCurrent(value)
+    setGeneration((g) => g + 1)
+  }, [value, current])
+
+  useEffect(() => {
+    if (previous === null) return
+    const id = window.setTimeout(() => setPrevious(null), 320)
+    return () => clearTimeout(id)
+  }, [previous, generation])
+
+  const isAnimating = previous !== null
+
+  return (
+    <span className="main__clock-digit" aria-hidden="true">
+      {isAnimating && (
+        <span
+          key={`out-${generation}`}
+          className="main__clock-digit__layer main__clock-digit__layer--exit"
+        >
+          {previous}
+        </span>
+      )}
+      <span
+        key={`in-${generation}`}
+        className={`main__clock-digit__layer${isAnimating ? ' main__clock-digit__layer--enter' : ''}`}
+      >
+        {current}
+      </span>
+    </span>
+  )
 }
 
 function formatUtc(): string {
