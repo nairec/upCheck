@@ -71,7 +71,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `src/components/StatusBadge.tsx` | Dot + label mono (`OK`/`DOWN`/`WARN`). |
 | `src/components/MonitorForm.tsx` | Formulario reutilizable para crear/editar monitores. |
 | `src/components/MonitorFormModal.tsx` | Modal con el formulario de monitor. |
-| `src/pages/DashboardPage.tsx` | Panel principal con botón «Añadir monitor» y listado de cards. |
+| `src/pages/DashboardPage.tsx` | Panel principal con botón «Añadir monitor», listado de cards y reloj UTC (`Clock` / `ClockDigit`) con animación slide por dígito al cambiar de valor. |
 | `src/pages/AlertsPage.tsx` | Ajustes de alertas y CRUD de destinatarios. |
 | `src/pages/IncidentsPage.tsx` | Lista de incidentes activos y resueltos (30 días). |
 | `src/pages/IncidentDetailPage.tsx` | Detalle del episodio con checks durante la ventana. |
