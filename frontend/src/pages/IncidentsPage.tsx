@@ -62,81 +62,87 @@ export function IncidentsPage() {
       </header>
 
       <main className="main__content">
-        <div className="history-range" role="group" aria-label="Filtrar por estado">
-          {FILTER_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`history-range__btn${filter === option.value ? ' history-range__btn--active' : ''}`}
-              onClick={() => setFilter(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        {loading && <p className="history-loading">Cargando incidentes…</p>}
-
-        {error && (
-          <p className="notice notice--error" role="alert">
-            <span className="notice__prefix">ERR</span>
-            {error}
-          </p>
-        )}
-
-        {!loading && !error && visibleIncidents.length === 0 && (
-          <p className="notice">
-            <span className="notice__prefix">INFO</span>
-            No hay incidentes en los últimos 30 días.
-          </p>
-        )}
-
-        {!loading && !error && visibleIncidents.length > 0 && (
-          <div className="history-table-wrap">
-            <table className="history-table incidents-table">
-              <thead>
-                <tr>
-                  <th scope="col">Estado</th>
-                  <th scope="col">Monitor</th>
-                  <th scope="col">Inicio</th>
-                  <th scope="col">Duración</th>
-                  <th scope="col">Checks</th>
-                  <th scope="col">Causa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleIncidents.map((incident) => (
-                  <tr
-                    key={incident.id}
-                    className={`history-table__row history-table__row--${incident.status === 'open' ? 'down' : 'up'}`}
-                  >
-                    <td>
-                      <span
-                        className={`incidents-table__status incidents-table__status--${incident.status}`}
-                      >
-                        {incident.status === 'open' ? 'Activo' : 'Resuelto'}
-                      </span>
-                    </td>
-                    <td>
-                      <Link to={`/incidents/${incident.id}`} className="incidents-table__link">
-                        {incident.monitor_name}
-                      </Link>
-                      <span className="incidents-table__target">{incident.monitor_target}</span>
-                    </td>
-                    <td className="history-table__time">{formatDateTime(incident.started_at)}</td>
-                    <td className="history-table__mono">
-                      {formatDuration(incident.started_at, incident.ended_at)}
-                    </td>
-                    <td className="history-table__mono">{incident.failed_check_count}</td>
-                    <td className="history-table__error" title={incident.error_message ?? undefined}>
-                      {incident.error_message ?? '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="incidents-panel">
+          <div className="incidents-tabs" role="tablist" aria-label="Filtrar por estado">
+            {FILTER_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="tab"
+                aria-selected={filter === option.value}
+                className={`incidents-tabs__btn${filter === option.value ? ' incidents-tabs__btn--active' : ''}`}
+                onClick={() => setFilter(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
-        )}
+
+          <div className="incidents-panel__body">
+            {loading && <p className="history-loading">Cargando incidentes…</p>}
+
+            {error && (
+              <p className="notice notice--error" role="alert">
+                <span className="notice__prefix">ERR</span>
+                {error}
+              </p>
+            )}
+
+            {!loading && !error && visibleIncidents.length === 0 && (
+              <p className="notice incidents-panel__empty">
+                <span className="notice__prefix">INFO</span>
+                No hay incidentes en los últimos 30 días.
+              </p>
+            )}
+
+            {!loading && !error && visibleIncidents.length > 0 && (
+              <div className="history-table-wrap">
+                <table className="history-table incidents-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Estado</th>
+                      <th scope="col">Monitor</th>
+                      <th scope="col">Inicio</th>
+                      <th scope="col">Duración</th>
+                      <th scope="col">Checks</th>
+                      <th scope="col">Causa</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleIncidents.map((incident) => (
+                      <tr
+                        key={incident.id}
+                        className={`history-table__row history-table__row--${incident.status === 'open' ? 'down' : 'up'}`}
+                      >
+                        <td>
+                          <span
+                            className={`incidents-table__status incidents-table__status--${incident.status}`}
+                          >
+                            {incident.status === 'open' ? 'Activo' : 'Resuelto'}
+                          </span>
+                        </td>
+                        <td>
+                          <Link to={`/incidents/${incident.id}`} className="incidents-table__link">
+                            {incident.monitor_name}
+                          </Link>
+                          <span className="incidents-table__target">{incident.monitor_target}</span>
+                        </td>
+                        <td className="history-table__time">{formatDateTime(incident.started_at)}</td>
+                        <td className="history-table__mono">
+                          {formatDuration(incident.started_at, incident.ended_at)}
+                        </td>
+                        <td className="history-table__mono">{incident.failed_check_count}</td>
+                        <td className="history-table__error" title={incident.error_message ?? undefined}>
+                          {incident.error_message ?? '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </main>
     </div>
   )

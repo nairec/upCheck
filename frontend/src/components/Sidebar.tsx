@@ -64,7 +64,12 @@ export function Sidebar({ monitorCount, openIncidentCount }: SidebarProps) {
           <span className="sidebar__stat-value">{monitorCount}</span>
           <span className="sidebar__stat-label">monitores activos</span>
         </p>
-        <p className="sidebar__version">v0.1 · ops</p>
+        <p className="sidebar__version">
+          <Link to="/status" className="sidebar__status-link">
+            estado público
+          </Link>
+          {' · '}v0.1 · ops
+        </p>
       </div>
     </aside>
   )
