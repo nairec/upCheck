@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, Outlet, Route, Routes, useLocation } from 'react-router-dom'
-import { fetchMonitors } from './api/client'
+import { fetchIncidents, fetchMonitors } from './api/client'
 import { Sidebar } from './components/Sidebar'
 import { DashboardPage } from './pages/DashboardPage'
 import { AlertsPage } from './pages/AlertsPage'
@@ -9,28 +9,37 @@ import { IncidentsPage } from './pages/IncidentsPage'
 import { MonitorDetailPage } from './pages/MonitorDetailPage'
 import './App.css'
 
+const SIDEBAR_REFRESH_MS = 30_000
+
 function ShellLayout() {
   const [monitorCount, setMonitorCount] = useState(0)
+  const [openIncidentCount, setOpenIncidentCount] = useState(0)
   const location = useLocation()
 
-  const refreshMonitorCount = useCallback(async () => {
+  const refreshSidebar = useCallback(async () => {
     try {
-      const monitors = await fetchMonitors()
+      const [monitors, openIncidents] = await Promise.all([
+        fetchMonitors(),
+        fetchIncidents({ status: 'open', days: 30 }),
+      ])
       setMonitorCount(monitors.length)
+      setOpenIncidentCount(openIncidents.length)
     } catch {
       // Mantener el último valor conocido si la API no responde.
     }
   }, [])
 
   useEffect(() => {
-    void refreshMonitorCount()
-  }, [location.pathname, refreshMonitorCount])
+    void refreshSidebar()
+    const timer = setInterval(() => void refreshSidebar(), SIDEBAR_REFRESH_MS)
+    return () => clearInterval(timer)
+  }, [location.pathname, refreshSidebar])
 
   return (
     <div className="shell">
-      <Sidebar monitorCount={monitorCount} />
+      <Sidebar monitorCount={monitorCount} openIncidentCount={openIncidentCount} />
       <div className="main">
-        <Outlet context={{ refreshMonitorCount }} />
+        <Outlet context={{ refreshSidebar }} />
       </div>
     </div>
   )

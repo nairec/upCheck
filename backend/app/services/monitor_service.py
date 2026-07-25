@@ -160,22 +160,34 @@ def execute_check(
 
     from app.services import alert_service, incident_service
 
-    alert_service.handle_status_change(
-      session,
-      monitor=monitor,
-      previous_status=previous_status,
-      new_status=outcome.status,
-      check_result=result,
-      now=checked_at,
-    )
-    incident_service.handle_status_change(
-      session,
-      monitor_id=monitor.id,
-      previous_status=previous_status,
-      new_status=outcome.status,
-      error_message=outcome.error_message,
-      now=checked_at,
-    )
+    try:
+      alert_service.handle_status_change(
+        session,
+        monitor=monitor,
+        previous_status=previous_status,
+        new_status=outcome.status,
+        check_result=result,
+        now=checked_at,
+      )
+    except Exception:
+      import logging
+
+      logging.getLogger(__name__).exception("Alert handling failed for monitor %s", monitor.id)
+
+    try:
+      incident_service.handle_status_change(
+        session,
+        monitor_id=monitor.id,
+        previous_status=previous_status,
+        new_status=outcome.status,
+        error_message=outcome.error_message,
+        now=checked_at,
+      )
+    except Exception:
+      import logging
+
+      logging.getLogger(__name__).exception("Incident handling failed for monitor %s", monitor.id)
+
     session.refresh(monitor)
 
     return result

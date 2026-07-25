@@ -22,7 +22,7 @@ const RANGE_OPTIONS: { value: HistoryRange; label: string }[] = [
 
 export function MonitorDetailPage() {
   const navigate = useNavigate()
-  const { refreshMonitorCount } = useOutletContext<ShellContext>()
+  const { refreshSidebar } = useOutletContext<ShellContext>()
   const { id } = useParams()
   const monitorId = parseMonitorId(id)
 
@@ -109,7 +109,7 @@ export function MonitorDetailPage() {
     setDeleting(true)
     try {
       await deleteMonitor(monitorId)
-      await refreshMonitorCount()
+      await refreshSidebar()
       navigate('/')
     } catch (err) {
       setMonitorError(err instanceof Error ? err.message : 'No se pudo eliminar el monitor')

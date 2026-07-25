@@ -93,6 +93,26 @@
   font-family: var(--mono);
 }
 
+.sidebar__badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-align: center;
+  color: var(--white);
+  background: var(--down);
+  border: 1px solid color-mix(in srgb, var(--down) 50%, transparent);
+  line-height: 1.4;
+}
+
+.sidebar__link--active .sidebar__badge {
+  background: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 50%, transparent);
+  color: var(--bg);
+}
+
 .sidebar__link--soon {
   opacity: 0.45;
 }

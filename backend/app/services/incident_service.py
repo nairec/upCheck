@@ -16,6 +16,24 @@ def _get_open_incident(session: Session, monitor_id: int) -> Incident | None:
   ).first()
 
 
+def _open_incident(
+  session: Session,
+  *,
+  monitor_id: int,
+  error_message: str | None,
+  now: datetime,
+) -> Incident:
+  incident = Incident(
+    monitor_id=monitor_id,
+    status=IncidentStatus.OPEN,
+    started_at=now,
+    error_message=error_message,
+    failed_check_count=1,
+  )
+  session.add(incident)
+  return incident
+
+
 def handle_status_change(
   session: Session,
   *,
@@ -27,23 +45,13 @@ def handle_status_change(
 ) -> None:
   """Open, update or resolve an incident from a monitor status transition."""
   if new_status == MonitorStatus.DOWN:
-    if previous_status == MonitorStatus.DOWN:
-      incident = _get_open_incident(session, monitor_id)
-      if incident is None:
-        return
+    incident = _get_open_incident(session, monitor_id)
+    if incident is None:
+      _open_incident(session, monitor_id=monitor_id, error_message=error_message, now=now)
+    else:
       incident.failed_check_count += 1
       if error_message:
         incident.error_message = error_message
-    else:
-      session.add(
-        Incident(
-          monitor_id=monitor_id,
-          status=IncidentStatus.OPEN,
-          started_at=now,
-          error_message=error_message,
-          failed_check_count=1,
-        )
-      )
     session.commit()
     return
 

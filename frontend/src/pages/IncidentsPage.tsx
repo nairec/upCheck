@@ -12,13 +12,16 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'resolved', label: 'Resueltos' },
 ]
 
+const REFRESH_INTERVAL_MS = 30_000
+
 export function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (initial = false) => {
+    if (initial) setLoading(true)
     try {
       const data = await fetchIncidents({ days: 30 })
       setIncidents(data)
@@ -26,13 +29,14 @@ export function IncidentsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar incidentes')
     } finally {
-      setLoading(false)
+      if (initial) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    setLoading(true)
-    void load()
+    void load(true)
+    const timer = setInterval(() => void load(false), REFRESH_INTERVAL_MS)
+    return () => clearInterval(timer)
   }, [load])
 
   const visibleIncidents = useMemo(() => {

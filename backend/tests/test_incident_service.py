@@ -105,6 +105,24 @@ def test_resolves_incident_on_recovery(session) -> None:
   assert incident.ended_at is not None
 
 
+def test_down_without_open_incident_creates_one(session) -> None:
+  db, monitor = session
+  now = datetime(2026, 7, 25, 10, 0, tzinfo=UTC)
+
+  incident_service.handle_status_change(
+    db,
+    monitor_id=monitor.id,
+    previous_status=MonitorStatus.DOWN,
+    new_status=MonitorStatus.DOWN,
+    error_message="HTTP 404",
+    now=now,
+  )
+
+  incident = db.query(Incident).one()
+  assert incident.status == IncidentStatus.OPEN
+  assert incident.failed_check_count == 1
+
+
 def test_degraded_to_down_opens_incident(session) -> None:
   db, monitor = session
   now = datetime(2026, 7, 25, 10, 0, tzinfo=UTC)

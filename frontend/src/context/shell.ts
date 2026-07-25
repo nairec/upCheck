@@ -1,3 +1,3 @@
 export type ShellContext = {
-  refreshMonitorCount: () => Promise<void>
+  refreshSidebar: () => Promise<void>
 }

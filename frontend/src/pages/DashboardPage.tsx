@@ -13,7 +13,7 @@ import { sortMonitors } from '../utils/monitors'
 const REFRESH_INTERVAL_MS = 30_000
 
 export function DashboardPage() {
-  const { refreshMonitorCount } = useOutletContext<ShellContext>()
+  const { refreshSidebar } = useOutletContext<ShellContext>()
   const [monitors, setMonitors] = useState<Monitor[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +29,7 @@ export function DashboardPage() {
       ])
       setMonitors(monitorList)
       setStats(dashboardStats)
-      await refreshMonitorCount()
+      await refreshSidebar()
       setError(null)
       setRefreshKey((k) => k + 1)
     } catch (err) {
@@ -37,7 +37,7 @@ export function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [refreshMonitorCount])
+  }, [refreshSidebar])
 
   useEffect(() => {
     void load()
