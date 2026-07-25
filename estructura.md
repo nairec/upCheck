@@ -47,6 +47,8 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/services/incident_service.py` | Lógica sync en cada check: abrir, actualizar o resolver incidentes. |
 | `app/services/incident_service_async.py` | Lectura de incidentes y checks del episodio para la API. |
 | `app/api/routes/incidents.py` | `GET /incidents`, `GET /incidents/{id}`. |
+| `app/api/routes/status.py` | `GET /status` — datos públicos para la status page (sin targets ni credenciales). |
+| `app/services/status_service_async.py` | Agrega estado global, uptime 24h por monitor e incidentes abiertos para `/status`. |
 | `app/services/email_service.py` | Envío SMTP (`smtplib`); omitido si alerts deshabilitadas o sin SMTP. |
 | `app/services/alert_service.py` | UP→DOWN, cooldown, encola envío; reset al recuperar UP. |
 | `app/services/alert_recipient_service_async.py` | CRUD async de destinatarios. |
@@ -75,6 +77,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `src/pages/AlertsPage.tsx` | Ajustes de alertas y CRUD de destinatarios. |
 | `src/pages/IncidentsPage.tsx` | Lista de incidentes activos y resueltos (30 días). |
 | `src/pages/IncidentDetailPage.tsx` | Detalle del episodio con checks durante la ventana. |
+| `src/pages/StatusPage.tsx` | Status page pública en `/status` (sin sidebar): estado general, servicios e incidentes activos. |
 | `src/pages/MonitorDetailPage.tsx` | Detalle con historial, editar y eliminar monitor; actualiza el contador del sidebar al borrar. |
 | `src/components/AggregateHistoryTable.tsx` | Tabla de buckets hourly/daily (uptime, latencia, downtime). |
 | `src/components/CheckHistoryTable.tsx` | Tabla de checks individuales (granularidad raw). |

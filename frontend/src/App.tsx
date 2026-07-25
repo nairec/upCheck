@@ -7,6 +7,7 @@ import { AlertsPage } from './pages/AlertsPage'
 import { IncidentDetailPage } from './pages/IncidentDetailPage'
 import { IncidentsPage } from './pages/IncidentsPage'
 import { MonitorDetailPage } from './pages/MonitorDetailPage'
+import { StatusPage } from './pages/StatusPage'
 import './App.css'
 
 const SIDEBAR_REFRESH_MS = 30_000
@@ -49,6 +50,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/status" element={<StatusPage />} />
         <Route element={<ShellLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/alerts" element={<AlertsPage />} />

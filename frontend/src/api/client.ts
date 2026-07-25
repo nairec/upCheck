@@ -8,6 +8,7 @@ import type {
   IncidentDetail,
   Monitor,
   MonitorHistoryResponse,
+  PublicStatus,
 } from '../types'
 import type { MonitorInput } from '../utils/monitorForm'
 
@@ -187,4 +188,8 @@ export function fetchIncident(id: number): Promise<IncidentDetail> {
     return Promise.reject(new ApiError('Invalid incident id', 400))
   }
   return request<IncidentDetail>(`/incidents/${id}`)
+}
+
+export function fetchPublicStatus(): Promise<PublicStatus> {
+  return request<PublicStatus>('/status')
 }
