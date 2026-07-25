@@ -8,7 +8,7 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', path: '/', soon: false },
   { id: 'alerts', label: 'Alertas', path: '/alerts', soon: false },
-  { id: 'incidents', label: 'Incidentes', path: '#', soon: true },
+  { id: 'incidents', label: 'Incidentes', path: '/incidents', soon: false },
 ]
 
 export function Sidebar({ monitorCount }: SidebarProps) {

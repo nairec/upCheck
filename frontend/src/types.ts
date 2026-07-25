@@ -1,3 +1,21 @@
+export type IncidentStatus = 'open' | 'resolved'
+
+export interface Incident {
+  id: number
+  monitor_id: number
+  monitor_name: string
+  monitor_target: string
+  status: IncidentStatus
+  started_at: string
+  ended_at: string | null
+  error_message: string | null
+  failed_check_count: number
+}
+
+export interface IncidentDetail extends Incident {
+  checks: CheckResult[]
+}
+
 export type MonitorType = 'http' | 'tcp' | 'ping' | 'postgres' | 'redis'
 
 export type MonitorStatus = 'up' | 'down' | 'degraded' | 'unknown'

@@ -158,7 +158,7 @@ def execute_check(
     session.commit()
     session.refresh(result)
 
-    from app.services import alert_service
+    from app.services import alert_service, incident_service
 
     alert_service.handle_status_change(
       session,
@@ -166,6 +166,14 @@ def execute_check(
       previous_status=previous_status,
       new_status=outcome.status,
       check_result=result,
+      now=checked_at,
+    )
+    incident_service.handle_status_change(
+      session,
+      monitor_id=monitor.id,
+      previous_status=previous_status,
+      new_status=outcome.status,
+      error_message=outcome.error_message,
       now=checked_at,
     )
     session.refresh(monitor)

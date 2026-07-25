@@ -4,6 +4,8 @@ import { fetchMonitors } from './api/client'
 import { Sidebar } from './components/Sidebar'
 import { DashboardPage } from './pages/DashboardPage'
 import { AlertsPage } from './pages/AlertsPage'
+import { IncidentDetailPage } from './pages/IncidentDetailPage'
+import { IncidentsPage } from './pages/IncidentsPage'
 import { MonitorDetailPage } from './pages/MonitorDetailPage'
 import './App.css'
 
@@ -41,6 +43,8 @@ export default function App() {
         <Route element={<ShellLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/incidents" element={<IncidentsPage />} />
+          <Route path="/incidents/:id" element={<IncidentDetailPage />} />
           <Route path="/monitors/:id" element={<MonitorDetailPage />} />
         </Route>
       </Routes>
