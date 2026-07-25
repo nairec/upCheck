@@ -170,11 +170,13 @@
 
 .main__header-actions {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 20px;
+  justify-content: space-between;
+  gap: 48px;
+  width: min(100%, 28rem);
+  margin: 0 auto;
   flex-wrap: wrap;
-  width: 100%;
 }
 
 .main__header-actions .main__clock {
