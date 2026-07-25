@@ -3,15 +3,16 @@ import type { DashboardStats } from '../types'
 
 interface SidebarProps {
   monitorCount: number
+  openIncidentCount: number
 }
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', path: '/', soon: false },
   { id: 'alerts', label: 'Alertas', path: '/alerts', soon: false },
-  { id: 'incidents', label: 'Incidentes', path: '#', soon: true },
+  { id: 'incidents', label: 'Incidentes', path: '/incidents', soon: false },
 ]
 
-export function Sidebar({ monitorCount }: SidebarProps) {
+export function Sidebar({ monitorCount, openIncidentCount }: SidebarProps) {
   const location = useLocation()
 
   return (
@@ -50,6 +51,9 @@ export function Sidebar({ monitorCount }: SidebarProps) {
               aria-current={isActive ? 'page' : undefined}
             >
               <span className="sidebar__link-label">{item.label}</span>
+              {item.id === 'incidents' && openIncidentCount > 0 && (
+                <span className="sidebar__badge" aria-label={`${openIncidentCount} incidentes activos`} />
+              )}
             </Link>
           )
         })}

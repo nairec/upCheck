@@ -14,3 +14,8 @@ class MonitorStatus(str, enum.Enum):
   DOWN = "down"
   DEGRADED = "degraded"
   UNKNOWN = "unknown"
+
+
+class IncidentStatus(str, enum.Enum):
+  OPEN = "open"
+  RESOLVED = "resolved"

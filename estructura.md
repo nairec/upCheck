@@ -43,7 +43,10 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `app/alerts.py` | Constantes de alertas (`DOWN_ALERT_COOLDOWN_MINUTES=15`). |
 | `app/models/alert_recipient.py` | Destinatarios de email por cuenta. |
 | `app/models/alert_settings.py` | Preferencias de cuenta: cooldown, cuándo avisar (singleton id=1). |
-| `src/pages/AlertsPage.tsx` | Ajustes de alertas y CRUD de destinatarios. |
+| `app/models/incident.py` | Episodios de caída por monitor (apertura en DOWN, cierre en UP). |
+| `app/services/incident_service.py` | Lógica sync en cada check: abrir, actualizar o resolver incidentes. |
+| `app/services/incident_service_async.py` | Lectura de incidentes y checks del episodio para la API. |
+| `app/api/routes/incidents.py` | `GET /incidents`, `GET /incidents/{id}`. |
 | `app/services/email_service.py` | Envío SMTP (`smtplib`); omitido si alerts deshabilitadas o sin SMTP. |
 | `app/services/alert_service.py` | UP→DOWN, cooldown, encola envío; reset al recuperar UP. |
 | `app/services/alert_recipient_service_async.py` | CRUD async de destinatarios. |
@@ -51,7 +54,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `backend/.env.example` | Plantilla SMTP y `ALERTS_ENABLED`. |
 | `app/core/database.py` | Engine async + `get_db()` para FastAPI. |
 | `app/core/sync_database.py` | Engine sync para workers Celery. |
-| `alembic/` | `007_reset_monitor_identity.py` elimina restos de monitores demo y sincroniza la secuencia de ids. |
+| `alembic/` | `008_add_incidents.py` añade tabla de episodios de caída. |
 | `entrypoint.sh` | Ejecuta `alembic upgrade head` antes de arrancar uvicorn. |
 
 ## Frontend (`frontend/`)
@@ -69,6 +72,9 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `src/components/MonitorForm.tsx` | Formulario reutilizable para crear/editar monitores. |
 | `src/components/MonitorFormModal.tsx` | Modal con el formulario de monitor. |
 | `src/pages/DashboardPage.tsx` | Panel principal con botón «Añadir monitor» y listado de cards. |
+| `src/pages/AlertsPage.tsx` | Ajustes de alertas y CRUD de destinatarios. |
+| `src/pages/IncidentsPage.tsx` | Lista de incidentes activos y resueltos (30 días). |
+| `src/pages/IncidentDetailPage.tsx` | Detalle del episodio con checks durante la ventana. |
 | `src/pages/MonitorDetailPage.tsx` | Detalle con historial, editar y eliminar monitor; actualiza el contador del sidebar al borrar. |
 | `src/components/AggregateHistoryTable.tsx` | Tabla de buckets hourly/daily (uptime, latencia, downtime). |
 | `src/components/CheckHistoryTable.tsx` | Tabla de checks individuales (granularidad raw). |
@@ -91,3 +97,4 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 7. **Historial paginado y seguro** — `monitor_id` validado con `Path(ge=1)`; paginación acotada; resultados siempre filtrados por `monitor_id` en SQL; mensajes de error truncados en API.
 8. **Retención en tres niveles** — raw 30d, hourly 90d, daily 2 años. Job Celery diario hace rollup antes de purge (nunca se pierden datos sin agregar). Constantes en `retention.py` (sin env vars). API `/history` elige granularidad automáticamente según el rango.
 9. **Alertas email UP→DOWN** — SMTP configurable por env; cooldown 15 min en `alerts.py`; destinatarios en BD; envío asíncrono vía Celery para no bloquear checks. **Pendiente (futuro):** formato de avisos configurable, tipos de alerta por destinatario y suscripción por monitor (no todos los destinatarios deben recibir todos los monitores).
+10. **Incidentes como episodios** — se persisten al cambiar estado en `execute_check`: apertura al pasar a DOWN, actualización mientras sigue DOWN, cierre al volver a UP. No se reconstruyen desde historial retroactivo.

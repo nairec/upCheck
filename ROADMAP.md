@@ -33,7 +33,7 @@ Implicación técnica: pasar de `alert_recipients` planos a reglas de suscripci�
 
 - [ ] Checks de bases de datos: PostgreSQL, MySQL, Redis, MongoDB
 - [ ] Métricas de latencia (p50/p95) y uptime % (7d/30d/90d) con gráficos
-- [ ] Sistema de incidentes (agrupar fallos consecutivos)
+- [x] Sistema de incidentes (agrupar fallos consecutivos)
 - [ ] Status page pública
 - [ ] Webhooks / Slack / Telegram
 - [ ] Personalización de alertas: formato, tipos por destinatario y filtros por monitor

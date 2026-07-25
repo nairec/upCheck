@@ -4,6 +4,8 @@ import type {
   AlertSettingsUpdate,
   CheckResultPage,
   DashboardStats,
+  Incident,
+  IncidentDetail,
   Monitor,
   MonitorHistoryResponse,
 } from '../types'
@@ -165,4 +167,24 @@ export async function deleteAlertRecipient(id: number): Promise<void> {
     }
     throw new ApiError(detail, response.status)
   }
+}
+
+export function fetchIncidents(params: {
+  status?: 'open' | 'resolved'
+  monitor_id?: number
+  days?: number
+} = {}): Promise<Incident[]> {
+  const query = new URLSearchParams()
+  if (params.status) query.set('status', params.status)
+  if (params.monitor_id != null) query.set('monitor_id', String(params.monitor_id))
+  if (params.days != null) query.set('days', String(params.days))
+  const suffix = query.size > 0 ? `?${query}` : ''
+  return request<Incident[]>(`/incidents${suffix}`)
+}
+
+export function fetchIncident(id: number): Promise<IncidentDetail> {
+  if (!Number.isInteger(id) || id < 1) {
+    return Promise.reject(new ApiError('Invalid incident id', 400))
+  }
+  return request<IncidentDetail>(`/incidents/${id}`)
 }
