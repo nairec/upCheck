@@ -161,12 +161,26 @@
 
 .main__header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   padding: 20px 28px 16px;
   border-bottom: 1px solid var(--border);
   gap: 16px;
+}
+
+.main__header-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+  width: min(100%, 28rem);
+  margin: 0 auto;
   flex-wrap: wrap;
+}
+
+.main__header-actions .main__clock {
+  align-items: center;
 }
 
 .main__eyebrow {
@@ -965,13 +979,6 @@
 
 /* Buttons */
 
-.main__header-actions {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
 .btn {
   padding: 8px 14px;
   border-radius: var(--radius);
@@ -1284,6 +1291,78 @@
 }
 
 /* Incidents */
+
+.incidents-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.incidents-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.incidents-tabs__btn {
+  position: relative;
+  padding: 10px 18px;
+  margin: 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.incidents-tabs__btn:last-child {
+  border-right: none;
+}
+
+.incidents-tabs__btn:hover {
+  color: var(--cream);
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
+}
+
+.incidents-tabs__btn--active {
+  color: var(--white);
+  background: var(--surface);
+  box-shadow: inset 0 2px 0 var(--amber);
+}
+
+.incidents-tabs__btn--active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--surface);
+}
+
+.incidents-panel__body {
+  background: var(--surface);
+}
+
+.incidents-panel__body .history-table-wrap {
+  border: none;
+  border-radius: 0;
+}
+
+.incidents-panel__empty,
+.incidents-panel__body .history-loading,
+.incidents-panel__body .notice {
+  margin: 0;
+  padding: 20px 16px;
+}
 
 .incidents-page__summary {
   margin: 0;
