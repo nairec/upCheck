@@ -64,7 +64,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `public/fonts/` | Geist Sans y Geist Mono (woff2 variable). |
 | `src/fonts.css` | `@font-face` para las fuentes Geist. |
 | `src/index.css` | Design tokens Control Room: ámbar, crema, blanco sobre fondo `#0a0908`; textura noise sutil. |
-| `src/App.css` | Layout: sidebar, health bar, stats grid, cards con jerarquía de severidad, responsive. |
+| `src/App.css` | Layout: sidebar, health bar, stats grid, cards con jerarquía de severidad, responsive; datos flotantes sin cajas (tipografía y espaciado). |
 | `src/App.tsx` | Shell Control Room: sidebar + panel, reloj UTC, skeleton loading, refresh bar; refresca el contador de monitores al cambiar de ruta. |
 | `src/components/Sidebar.tsx` | Navegación lateral + `HealthBar` (uptime 24h; si no hay historial, la barra refleja el % de monitores operativos). |
 | `src/components/MonitorCard.tsx` | Card con sparkline, tiempo relativo, estados quiet/critical; índice visual `01`… (posición en lista, no id de BD). |
