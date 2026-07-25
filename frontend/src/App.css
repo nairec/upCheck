@@ -94,23 +94,17 @@
 }
 
 .sidebar__badge {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 600;
-  min-width: 18px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  text-align: center;
-  color: var(--white);
-  background: var(--down);
-  border: 1px solid color-mix(in srgb, var(--down) 50%, transparent);
-  line-height: 1.4;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-left: 14px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber-glow-strong);
 }
 
 .sidebar__link--active .sidebar__badge {
-  background: var(--amber);
-  border-color: color-mix(in srgb, var(--amber) 50%, transparent);
-  color: var(--bg);
+  background: var(--amber-bright);
 }
 
 .sidebar__link--soon {

@@ -52,9 +52,7 @@ export function Sidebar({ monitorCount, openIncidentCount }: SidebarProps) {
             >
               <span className="sidebar__link-label">{item.label}</span>
               {item.id === 'incidents' && openIncidentCount > 0 && (
-                <span className="sidebar__badge" aria-label={`${openIncidentCount} incidentes activos`}>
-                  {openIncidentCount}
-                </span>
+                <span className="sidebar__badge" aria-label={`${openIncidentCount} incidentes activos`} />
               )}
             </Link>
           )
