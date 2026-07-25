@@ -161,12 +161,24 @@
 
 .main__header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   padding: 20px 28px 16px;
   border-bottom: 1px solid var(--border);
   gap: 16px;
+}
+
+.main__header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
   flex-wrap: wrap;
+  width: 100%;
+}
+
+.main__header-actions .main__clock {
+  align-items: center;
 }
 
 .main__eyebrow {
@@ -964,13 +976,6 @@
 }
 
 /* Buttons */
-
-.main__header-actions {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  flex-wrap: wrap;
-}
 
 .btn {
   padding: 8px 14px;
