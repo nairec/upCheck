@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchPublicStatus } from '../api/client'
+import { ApiError, fetchPublicStatus } from '../api/client'
 import { HealthBar } from '../components/Sidebar'
 import { StatsBar } from '../components/StatsBar'
 import { StatusBadge } from '../components/StatusBadge'
@@ -30,6 +30,7 @@ export function StatusPage() {
   const [status, setStatus] = useState<PublicStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isPrivate, setIsPrivate] = useState(false)
 
   const load = useCallback(async (initial = false) => {
     if (initial) setLoading(true)
@@ -37,8 +38,16 @@ export function StatusPage() {
       const data = await fetchPublicStatus()
       setStatus(data)
       setError(null)
+      setIsPrivate(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo cargar el estado')
+      if (err instanceof ApiError && err.status === 404) {
+        setStatus(null)
+        setIsPrivate(true)
+        setError(null)
+      } else {
+        setError(err instanceof Error ? err.message : 'No se pudo cargar el estado')
+        setIsPrivate(false)
+      }
     } finally {
       if (initial) setLoading(false)
     }
@@ -86,6 +95,15 @@ export function StatusPage() {
           <div className="notice notice--error" role="alert">
             <span className="notice__prefix">!</span>
             {error}
+          </div>
+        )}
+
+        {isPrivate && !loading && (
+          <div className="status-page__private" role="status">
+            <p className="status-page__private-title">Página de estado privada</p>
+            <p className="status-page__private-text">
+              El administrador ha desactivado el acceso público a esta página.
+            </p>
           </div>
         )}
 

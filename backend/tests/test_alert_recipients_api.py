@@ -12,6 +12,7 @@ async def test_alert_settings_defaults(client: AsyncClient) -> None:
   assert body["down_alert_cooldown_minutes"] == 15
   assert body["alert_on_down"] is True
   assert body["alert_on_recovery"] is False
+  assert body["status_page_public"] is True
   assert body["recipient_count"] == 0
 
 
@@ -29,6 +30,19 @@ async def test_update_alert_settings(client: AsyncClient) -> None:
   body = response.json()
   assert body["down_alert_cooldown_minutes"] == 30
   assert body["alert_on_recovery"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_status_page_visibility(client: AsyncClient) -> None:
+  response = await client.patch(
+    "/api/v1/alerts/settings",
+    json={"status_page_public": False},
+  )
+  assert response.status_code == 200
+  assert response.json()["status_page_public"] is False
+
+  status = await client.get("/api/v1/status")
+  assert status.status_code == 404
 
 
 @pytest.mark.asyncio

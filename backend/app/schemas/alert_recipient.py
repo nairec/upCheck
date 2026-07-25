@@ -27,6 +27,7 @@ class AlertSettingsRead(BaseModel):
   down_alert_cooldown_minutes: int
   alert_on_down: bool
   alert_on_recovery: bool
+  status_page_public: bool
   recipient_count: int
 
 
@@ -34,3 +35,4 @@ class AlertSettingsUpdate(BaseModel):
   down_alert_cooldown_minutes: int | None = Field(default=None, ge=1, le=1440)
   alert_on_down: bool | None = None
   alert_on_recovery: bool | None = None
+  status_page_public: bool | None = None

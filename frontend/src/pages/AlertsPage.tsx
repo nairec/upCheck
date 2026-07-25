@@ -16,6 +16,7 @@ export function AlertsPage() {
   const [cooldown, setCooldown] = useState(15)
   const [alertOnDown, setAlertOnDown] = useState(true)
   const [alertOnRecovery, setAlertOnRecovery] = useState(false)
+  const [statusPagePublic, setStatusPagePublic] = useState(true)
   const [newEmail, setNewEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [savingSettings, setSavingSettings] = useState(false)
@@ -33,6 +34,7 @@ export function AlertsPage() {
       setCooldown(alertSettings.down_alert_cooldown_minutes)
       setAlertOnDown(alertSettings.alert_on_down)
       setAlertOnRecovery(alertSettings.alert_on_recovery)
+      setStatusPagePublic(alertSettings.status_page_public)
       setRecipients(recipientList)
       setError(null)
     } catch (err) {
@@ -55,6 +57,7 @@ export function AlertsPage() {
         down_alert_cooldown_minutes: cooldown,
         alert_on_down: alertOnDown,
         alert_on_recovery: alertOnRecovery,
+        status_page_public: statusPagePublic,
       })
       setSettings(updated)
       setNotice('Ajustes guardados')
@@ -161,6 +164,34 @@ export function AlertsPage() {
                 Configura <code>SMTP_*</code> y <code>ALERTS_ENABLED=true</code> en{' '}
                 <code>backend/.env</code> para habilitar el envío real.
               </p>
+            </section>
+
+            <section className="alerts-card">
+              <h2 className="alerts-card__title">Página de estado</h2>
+              <p className="alerts-card__hint">
+                La status page pública está en <code>/status</code>. Cada monitor puede marcarse
+                individualmente como visible o privado al crearlo o editarlo.
+              </p>
+              <form className="alerts-form" onSubmit={(e) => void handleSaveSettings(e)}>
+                <label className="alerts-form__checkbox">
+                  <input
+                    type="checkbox"
+                    checked={statusPagePublic}
+                    onChange={(e) => setStatusPagePublic(e.target.checked)}
+                  />
+                  <span>
+                    <strong>Página pública</strong> — cualquiera con el enlace puede ver el estado
+                  </span>
+                </label>
+                {!statusPagePublic && (
+                  <p className="alerts-card__hint">
+                    Con esta opción desactivada, <code>/status</code> no mostrará información.
+                  </p>
+                )}
+                <button type="submit" className="btn btn--primary" disabled={savingSettings}>
+                  {savingSettings ? 'Guardando…' : 'Guardar ajustes'}
+                </button>
+              </form>
             </section>
 
             <section className="alerts-card">

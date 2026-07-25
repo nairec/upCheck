@@ -52,6 +52,7 @@ export interface Monitor {
   interval_seconds: number
   timeout_seconds: number
   enabled: boolean
+  public_on_status_page: boolean
   status: MonitorStatus
   last_checked_at: string | null
   response_time_ms: number | null
@@ -117,6 +118,7 @@ export interface AlertSettings {
   down_alert_cooldown_minutes: number
   alert_on_down: boolean
   alert_on_recovery: boolean
+  status_page_public: boolean
   recipient_count: number
 }
 
@@ -124,6 +126,7 @@ export interface AlertSettingsUpdate {
   down_alert_cooldown_minutes?: number
   alert_on_down?: boolean
   alert_on_recovery?: boolean
+  status_page_public?: boolean
 }
 
 export type OverallStatus = 'operational' | 'degraded' | 'major_outage'
