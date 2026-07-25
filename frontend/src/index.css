@@ -80,9 +80,10 @@ body::before {
 
 @keyframes scan {
   0% {
-    transform: translateX(-100%);
+    left: calc(-1 * var(--glow-width));
   }
+
   100% {
-    transform: translateX(100%);
+    left: 100%;
   }
 }

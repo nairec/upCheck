@@ -212,16 +212,20 @@
 /* Refresh progress bar */
 
 .refresh-bar {
+  position: relative;
   height: 2px;
   background: var(--border);
   overflow: hidden;
 }
 
 .refresh-bar::after {
+  --glow-width: 40%;
   content: '';
-  display: block;
+  position: absolute;
+  top: 0;
+  left: calc(-1 * var(--glow-width));
+  width: var(--glow-width);
   height: 100%;
-  width: 40%;
   background: linear-gradient(90deg, transparent, var(--amber), transparent);
   animation: scan 30s linear infinite;
 }
