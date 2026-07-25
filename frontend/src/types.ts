@@ -125,3 +125,33 @@ export interface AlertSettingsUpdate {
   alert_on_down?: boolean
   alert_on_recovery?: boolean
 }
+
+export type OverallStatus = 'operational' | 'degraded' | 'major_outage'
+
+export interface StatusMonitorItem {
+  id: number
+  name: string
+  type: MonitorType
+  status: MonitorStatus
+  uptime_24h_percent: number | null
+  response_time_ms: number | null
+  last_checked_at: string | null
+}
+
+export interface PublicStatusIncident {
+  id: number
+  monitor_name: string
+  status: IncidentStatus
+  started_at: string
+  error_message: string | null
+  failed_check_count: number
+}
+
+export interface PublicStatus {
+  status: OverallStatus
+  uptime_24h_percent: number | null
+  monitors: MonitorSummary
+  services: StatusMonitorItem[]
+  open_incidents: PublicStatusIncident[]
+  updated_at: string
+}
