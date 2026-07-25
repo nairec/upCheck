@@ -9,16 +9,21 @@ import { formatDateTime, formatDuration, formatRelativeTime } from '../utils/tim
 
 const REFRESH_INTERVAL_MS = 30_000
 
-const STATUS_LABELS: Record<OverallStatus, string> = {
-  operational: 'Todos los sistemas operativos',
-  degraded: 'Rendimiento degradado',
-  major_outage: 'Interrupción del servicio',
-}
-
-const STATUS_HINTS: Record<OverallStatus, string> = {
-  operational: 'Todos los servicios monitorizados responden con normalidad.',
+const STATUS_ALERTS: Partial<Record<OverallStatus, string>> = {
   degraded: 'Algunos servicios presentan latencia o respuestas anómalas.',
   major_outage: 'Hay servicios caídos en este momento.',
+}
+
+function StatusWarningIcon() {
+  return (
+    <svg className="status-alert__icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2.2 1.8 20.2a1.2 1.2 0 0 0 1 1.8h18.4a1.2 1.2 0 0 0 1-1.8L12 2.2Z"
+      />
+      <path fill="var(--bg)" d="M11.1 9.2h1.8v5.4h-1.8V9.2Zm.9 7.8a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Z" />
+    </svg>
+  )
 }
 
 export function StatusPage() {
@@ -86,14 +91,18 @@ export function StatusPage() {
 
         {status && (
           <>
-            <section
-              className={`status-hero status-hero--${status.status}`}
-              aria-label="Estado general"
-            >
-              <p className="status-hero__eyebrow">estado actual</p>
-              <h1 className="status-hero__title">{STATUS_LABELS[status.status]}</h1>
-              <p className="status-hero__hint">{STATUS_HINTS[status.status]}</p>
-            </section>
+            {status.status === 'operational' ? (
+              <p className="status-page__ok">Todos los sistemas operativos</p>
+            ) : (
+              <div
+                className={`status-alert status-alert--${status.status}`}
+                role="alert"
+                aria-label={STATUS_ALERTS[status.status]}
+              >
+                <StatusWarningIcon />
+                <p className="status-alert__text">{STATUS_ALERTS[status.status]}</p>
+              </div>
+            )}
 
             {dashboardStats && (
               <>

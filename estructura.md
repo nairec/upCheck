@@ -77,7 +77,7 @@ Celery Beat ──▶ Redis ◀── Celery Worker ──▶ ejecuta checks ─
 | `src/pages/AlertsPage.tsx` | Ajustes de alertas y CRUD de destinatarios. |
 | `src/pages/IncidentsPage.tsx` | Lista de incidentes activos y resueltos (30 días). |
 | `src/pages/IncidentDetailPage.tsx` | Detalle del episodio con checks durante la ventana. |
-| `src/pages/StatusPage.tsx` | Status page pública en `/status` (sin sidebar): estado general, servicios e incidentes activos. |
+| `src/pages/StatusPage.tsx` | Status page pública en `/status` (sin sidebar): aviso discreto con icono poligonal si hay caídas, servicios e incidentes activos. |
 | `src/pages/MonitorDetailPage.tsx` | Detalle con historial, editar y eliminar monitor; actualiza el contador del sidebar al borrar. |
 | `src/components/AggregateHistoryTable.tsx` | Tabla de buckets hourly/daily (uptime, latencia, downtime). |
 | `src/components/CheckHistoryTable.tsx` | Tabla de checks individuales (granularidad raw). |
